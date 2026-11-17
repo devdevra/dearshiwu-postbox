@@ -57,12 +57,16 @@
       <div class="mail" id="mail">
         <button class="envelope" id="envelope" type="button" aria-label="오늘의 편지 열기">
           <span class="env-paper-lines" aria-hidden="true"></span>
+          <span class="env-postmark" aria-hidden="true">
+            <span class="postmark-ring">DEAR SHIWU<br>PM 3:00</span>
+          </span>
           <span class="env-stamp" aria-hidden="true">
             <span class="stamp-inner">詩 · 3PM</span>
           </span>
           <span class="flap" aria-hidden="true"></span>
           <span class="seal" aria-hidden="true">3 PM</span>
           <span class="env-to">눌러서 열어 보세요</span>
+          <span class="env-sub">시 한 편과 그림 한 장이 들어 있어요</span>
         </button>
         <div id="todayCard"></div>
         <div class="after-read" id="afterRead" hidden="">
@@ -75,12 +79,12 @@
         <span id="arrival">11월 17일, 첫 편지</span>
         <span id="countdown">다음 편지까지 3시간 44분</span>
       </div>
-      <div class="daynav" role="group" aria-label="시연용: 다른 날 편지 보기" hidden="">
+      <div class="daynav" role="group" aria-label="날짜별 편지 넘겨보기">
         <button type="button" id="dayPrev" aria-label="이전 날 편지" disabled="">‹ 이전 날</button>
         <span id="dayLabel">1일째 · 11월 17일</span>
         <button type="button" id="dayNext" aria-label="다음 날 편지">다음 날 ›</button>
       </div>
-      <p class="proto" style="margin:0" hidden="">시연용 기능이에요. 실제 서비스에서는 오늘 편지만 열리고, 지난 편지는 보관함에 쌓여요.</p>
+      <p class="proto" style="margin:0" hidden="">30일간의 시 편지를 자유롭게 넘겨보실 수 있어요.</p>
     </section>
 
     <section data-view="mood" aria-labelledby="moodTitle" hidden="">
@@ -99,7 +103,11 @@
     <section data-view="box" aria-labelledby="boxTitle" hidden="">
       <div>
         <h1 id="boxTitle">보관함</h1>
-        <p class="lead">다시 읽고 싶은 편지를 모아 두는 곳이에요.</p>
+        <p class="lead">다시 읽고 싶은 편지와 마음에 밑줄 그은 구절을 모아 두는 곳이에요.</p>
+      </div>
+      <div id="underlineSection" hidden="">
+        <h2 class="sub-h">밑줄 그은 문장들</h2>
+        <ul class="underline-list" id="underlineList"></ul>
       </div>
       <h2 class="sub-h">보관한 편지</h2>
       <ul class="list" id="boxList"></ul>
@@ -162,7 +170,7 @@
         <p class="why3-from"><span>From</span> 시인의 우체통</p>
         <button class="why3-fold" id="why3Fold" type="button" aria-label="안내문 접어 두기" title="접어 두기"></button>
       </div>
-      <form id="joinForm" novalidate="" hidden="">
+      <form id="joinForm" novalidate="">
         <div>
           <label class="f" for="nick">부를 이름 (선택)</label>
           <input type="text" id="nick" name="nick" autocomplete="nickname" placeholder="예: 별빛">
@@ -202,7 +210,7 @@
     </section>
 
     <p class="care">마음이 많이 힘들 때는 혼자 견디지 마세요.<br>자살예방 상담전화 <b>109</b> · 정신건강 위기상담 <b>1577-0199</b> (24시간)<br>시인의 우체통은 의료기기가 아니며 진단·치료를 대신하지 않습니다. 증상이 반복되면 전문의와 상담하세요.</p>
-    <p class="proto" hidden="">시연판입니다. 그림은 시에 집중할 수 있게 시마다 단순하게 그린 시인의 우체통 그림이에요. 입력한 정보는 어디에도 저장되지 않아요. <button class="linkish" id="introAgain" type="button">처음 안내 다시 보기</button></p>
+    <p class="proto">시인의 우체통은 하루 한 번, 시와 그림으로 마음을 쉬게 하는 작은 서재입니다. <button class="linkish" id="introAgain" type="button">처음 안내 다시 보기</button></p>
   </div>
 
   <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introTitle">
@@ -211,7 +219,7 @@
       <div class="intro-dots" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
       <h2 id="introTitle">시 한 번에 호흡 한 번</h2>
       <p id="introText">매일 오후 3시, 시와 그림이 담긴 편지가 도착해요.</p>
-      <p class="intro-beta" id="introBeta">베타 기간에는 알림이 없어요.</p>
+      <p class="intro-beta" id="introBeta">하루 한 번, 오후 3시에 마음이 쉬어 가는 시간.</p>
       <div class="intro-actions">
         <button type="button" class="intro-skip" id="introSkip">건너뛰기</button>
         <button type="button" class="intro-next" id="introNext">다음</button>
@@ -235,6 +243,23 @@
       </div>
       <div class="sos-body" id="sosBody"></div>
       <p class="sos-note">시인의 우체통은 의료기기가 아니며 진단·치료를 대신하지 않습니다.</p>
+    </div>
+  </div>
+
+  <div class="postcard-modal" id="postcardModal" role="dialog" aria-modal="true" aria-labelledby="postcardTitle" hidden="">
+    <div class="postcard-dialog">
+      <div class="postcard-head">
+        <span id="postcardTitle">시 엽서 간직하기</span>
+        <button class="postcard-close" id="postcardClose" type="button" aria-label="시 엽서 닫기">닫기</button>
+      </div>
+      <div class="postcard-preview-wrap">
+        <canvas id="postcardCanvas" class="postcard-canvas" aria-label="시와 그림이 담긴 시 엽서 이미지"></canvas>
+      </div>
+      <p class="postcard-tip">밑줄 그은 구절이 있다면 그 구절이, 없다면 시의 첫 연이 엽서에 담겨요.</p>
+      <div class="postcard-actions">
+        <button class="submit postcard-dl" id="postcardDownload" type="button">이미지로 간직하기 (PNG)</button>
+        <button class="btn postcard-copy" id="postcardCopy" type="button">시 구절 복사하기</button>
+      </div>
     </div>
   </div>
 

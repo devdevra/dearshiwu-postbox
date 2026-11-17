@@ -728,3 +728,182 @@ export function renderArtworkCanvas(canvas, work) {
   sceneFn(ctx, width, height, rand);
   applyPoeticFinish(ctx, width, height, rand);
 }
+
+function wrapCanvasLines(ctx, textLines, maxWidth) {
+  const out = [];
+  textLines.forEach((line) => {
+    const trimmed = (line || "").trim();
+    if (!trimmed) return;
+    if (ctx.measureText(trimmed).width <= maxWidth) {
+      out.push(trimmed);
+      return;
+    }
+    const words = trimmed.split(" ");
+    let current = "";
+    words.forEach((word) => {
+      const candidate = current ? `${current} ${word}` : word;
+      if (ctx.measureText(candidate).width <= maxWidth) {
+        current = candidate;
+      } else {
+        if (current) out.push(current);
+        current = word;
+      }
+    });
+    if (current) out.push(current);
+  });
+  return out;
+}
+
+function traceRoundedRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+export function renderPostcardCanvas(canvas, work, highlightQuote, dateLabel) {
+  if (!canvas || !work) return;
+  const W = 720;
+  const H = 960;
+  const dpr = 2;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  // Warm hanji paper backdrop
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#faf7f0");
+  bg.addColorStop(0.55, "#f7f3eb");
+  bg.addColorStop(1, "#f0e8d8");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Double editorial bookplate border
+  ctx.strokeStyle = "rgba(185, 166, 136, 0.48)";
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(24, 24, W - 48, H - 48);
+  ctx.strokeStyle = "rgba(185, 166, 136, 0.24)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(32, 32, W - 64, H - 64);
+
+  // Top artwork plate (616 x 385, 16:10 ratio)
+  const artX = 52;
+  const artY = 52;
+  const artW = 616;
+  const artH = 385;
+  ctx.save();
+  traceRoundedRect(ctx, artX, artY, artW, artH, 10);
+  ctx.clip();
+  ctx.translate(artX, artY);
+  const rand = createSeededRandom(work.id);
+  const sceneFn = SCENES[work.art] || SCENES.pond;
+  sceneFn(ctx, artW, artH, rand);
+  applyPoeticFinish(ctx, artW, artH, rand);
+  ctx.restore();
+
+  ctx.strokeStyle = "rgba(140, 126, 102, 0.28)";
+  ctx.lineWidth = 1;
+  traceRoundedRect(ctx, artX, artY, artW, artH, 10);
+  ctx.stroke();
+
+  // Artwork caption
+  const caption = SCENE_CAPTIONS[work.art] || "";
+  if (caption) {
+    ctx.fillStyle = "#7a7267";
+    ctx.font = '14px "Gowun Batang", Georgia, serif';
+    ctx.textAlign = "center";
+    ctx.fillText(caption, W / 2, 464);
+  }
+
+  // Ornamental divider
+  ctx.strokeStyle = "rgba(185, 166, 136, 0.5)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(150, 494);
+  ctx.lineTo(W / 2 - 20, 494);
+  ctx.moveTo(W / 2 + 20, 494);
+  ctx.lineTo(W - 150, 494);
+  ctx.stroke();
+  ctx.fillStyle = "#b09975";
+  ctx.font = '14px serif';
+  ctx.textAlign = "center";
+  ctx.fillText("✦", W / 2, 499);
+
+  // Poem title & poet
+  ctx.fillStyle = "#161a22";
+  ctx.font = '700 30px "Gowun Batang", Georgia, serif';
+  ctx.textAlign = "center";
+  ctx.fillText(work.title, W / 2, 548);
+
+  const bylineText = work.mine
+    ? "이시우"
+    : `${work.author}${work.life ? ` (${work.life})` : ""}`;
+  ctx.fillStyle = "#666159";
+  ctx.font = '15px "IBM Plex Sans KR", sans-serif';
+  ctx.fillText(bylineText, W / 2, 580);
+
+  // Quote lines (either underlined verse or first stanza up to 5 lines)
+  const rawLines = highlightQuote
+    ? highlightQuote.split("\n")
+    : (work.lines || []).filter((l) => l.trim()).slice(0, 4);
+  ctx.font = '23px "Gowun Batang", Georgia, serif';
+  const wrapped = wrapCanvasLines(ctx, rawLines, 530).slice(0, 6);
+  const lineH = 42;
+  const blockH = wrapped.length * lineH;
+  const quoteStartY = Math.max(638, 725 - blockH / 2 + 24);
+
+  if (highlightQuote) {
+    // Subtle warm paper highlight behind user's underlined verse
+    const boxPadY = 20;
+    const boxTop = quoteStartY - 30 - boxPadY;
+    const boxH = blockH + boxPadY * 2 - 6;
+    ctx.fillStyle = "rgba(229, 178, 99, 0.14)";
+    traceRoundedRect(ctx, 84, boxTop, W - 168, boxH, 10);
+    ctx.fill();
+  }
+
+  ctx.fillStyle = "#161a22";
+  ctx.textAlign = "center";
+  wrapped.forEach((line, idx) => {
+    ctx.fillText(line, W / 2, quoteStartY + idx * lineH);
+  });
+
+  // Bottom editorial footer & red seal stamp
+  ctx.strokeStyle = "rgba(223, 214, 197, 0.9)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(56, 856);
+  ctx.lineTo(W - 56, 856);
+  ctx.stroke();
+
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#666159";
+  ctx.font = '14px "Gowun Batang", Georgia, serif';
+  ctx.fillText("시인의 우체통 · 잠시 나를 만나는 시간", 56, 896);
+  if (dateLabel) {
+    ctx.fillStyle = "#8a8174";
+    ctx.font = '13px "IBM Plex Sans KR", sans-serif';
+    ctx.fillText(dateLabel, 56, 918);
+  }
+
+  // Vermilion poet seal
+  const sealX = W - 108;
+  const sealY = 876;
+  ctx.save();
+  ctx.strokeStyle = "#b53829";
+  ctx.lineWidth = 1.6;
+  traceRoundedRect(ctx, sealX, sealY, 50, 46, 5);
+  ctx.stroke();
+  ctx.fillStyle = "rgba(201, 70, 53, 0.08)";
+  ctx.fill();
+  ctx.fillStyle = "#a32f21";
+  ctx.font = '700 13px "Gowun Batang", Georgia, serif';
+  ctx.textAlign = "center";
+  ctx.fillText("시인", sealX + 25, sealY + 20);
+  ctx.fillText("우체통", sealX + 25, sealY + 37);
+  ctx.restore();
+}

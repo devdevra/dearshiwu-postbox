@@ -99,8 +99,8 @@ body::before {
 
 @media (min-width: 768px) {
   .app {
-    max-width: 560px;
-    padding-block: 32px calc(160px + env(safe-area-inset-bottom, 0px));
+    max-width: 600px;
+    padding-block: 34px calc(164px + env(safe-area-inset-bottom, 0px));
     gap: 24px;
   }
 }
@@ -333,6 +333,33 @@ section[data-view] {
   pointer-events: none;
 }
 
+.env-postmark {
+  position: absolute;
+  top: 16px;
+  left: 18px;
+  z-index: 2;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: 1px solid rgba(102, 97, 89, 0.28);
+  display: grid;
+  place-items: center;
+  transform: rotate(-12deg);
+  pointer-events: none;
+}
+
+.postmark-ring {
+  font-family: var(--font-ui);
+  font-size: 7.5px;
+  line-height: 1.3;
+  letter-spacing: 0.08em;
+  text-align: center;
+  color: rgba(102, 97, 89, 0.56);
+  border-top: 1px solid rgba(102, 97, 89, 0.25);
+  border-bottom: 1px solid rgba(102, 97, 89, 0.25);
+  padding: 3px 2px;
+}
+
 .env-stamp {
   position: absolute;
   top: 14px;
@@ -365,7 +392,7 @@ section[data-view] {
   background: linear-gradient(180deg, #ede4d4 0%, #e5dac6 100%);
   clip-path: polygon(0 0, 100% 0, 50% 100%);
   transform-origin: top center;
-  transition: transform 0.6s ease;
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
   filter: drop-shadow(0 3px 6px rgba(60, 44, 24, 0.1));
 }
 
@@ -388,7 +415,7 @@ section[data-view] {
   box-shadow:
     0 4px 12px rgba(105, 25, 16, 0.34),
     0 0 0 2px rgba(255, 243, 234, 0.2) inset;
-  transition: opacity 0.3s ease, transform 0.35s ease;
+  transition: opacity 0.28s ease, transform 0.35s ease;
   animation: sealPulse 4.4s ease-in-out infinite;
 }
 
@@ -415,17 +442,44 @@ section[data-view] {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 16px;
+  bottom: 30px;
   text-align: center;
   font-family: var(--font-poem);
-  font-size: 14px;
+  font-size: 14.5px;
   letter-spacing: 0.04em;
-  color: var(--paper-quiet);
+  color: var(--paper-ink);
+}
+
+.env-sub {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 11px;
+  text-align: center;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: rgba(102, 97, 89, 0.8);
 }
 
 .envelope:focus-visible {
   outline: 2px solid var(--star);
   outline-offset: 4px;
+}
+
+.mail.opening .flap {
+  transform: rotateX(180deg);
+}
+
+.mail.opening .seal {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.82);
+}
+
+.mail.opening .envelope {
+  transform: translateY(-6px);
+  opacity: 0.28;
+  transition: transform 0.38s ease, opacity 0.38s ease;
 }
 
 .mail.open .flap {
@@ -498,17 +552,35 @@ section[data-view] {
 }
 
 .card-body {
-  padding: 22px 24px 26px;
+  padding: 18px 18px 22px;
+}
+
+.card-inner-frame {
+  border: 1px solid rgba(185, 166, 136, 0.42);
+  border-radius: 10px;
+  padding: 20px 18px 22px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  background: rgba(255, 253, 248, 0.34);
 }
 
 @media (min-width: 768px) {
   .card-body {
-    padding: 28px 34px 32px;
+    padding: 24px 26px 28px;
+  }
+  .card-inner-frame {
+    padding: 30px 36px 32px;
     gap: 18px;
   }
+}
+
+.card-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .day-tag {
@@ -518,36 +590,96 @@ section[data-view] {
   font-variant-numeric: tabular-nums;
 }
 
+.align-btn {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.48);
+  border: 1px solid var(--paper-line);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  color: var(--paper-quiet);
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+
+.align-btn:hover {
+  border-color: var(--paper-quiet);
+  color: var(--paper-ink);
+}
+
+.align-btn[aria-pressed="true"] {
+  background: rgba(229, 178, 99, 0.2);
+  border-color: rgba(185, 150, 96, 0.65);
+  color: #4b391e;
+}
+
+.align-btn:focus-visible {
+  outline: 2px solid var(--postbox);
+  outline-offset: 2px;
+}
+
 .poem-title {
   font-family: var(--font-poem);
   font-weight: 700;
-  font-size: 24px;
+  font-size: 25px;
   line-height: 1.45;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   margin: 0;
-  color: var(--paper-ink);
+  color: #141820;
+}
+
+@media (min-width: 768px) {
+  .poem-title {
+    font-size: 27px;
+  }
 }
 
 .byline {
   font-size: 13.5px;
   color: var(--paper-quiet);
-  margin-top: -10px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--paper-line);
-  position: relative;
+  margin-top: -8px;
+  line-height: 1.6;
+}
+
+.poem-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: -2px 0 2px;
+}
+
+.poem-divider::before,
+.poem-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--paper-line);
+}
+
+.poem-divider span {
+  font-size: 11px;
+  color: #b09975;
+  line-height: 1;
 }
 
 .poem {
   font-family: var(--font-poem);
-  font-size: 17.5px;
-  line-height: 2.15;
-  letter-spacing: 0.015em;
+  font-size: 18px;
+  line-height: 2.25;
+  letter-spacing: 0.02em;
   margin: 4px 0 2px;
   padding: 6px 2px;
   color: #161a22;
   white-space: pre-line;
   word-break: keep-all;
   overflow-wrap: anywhere;
+  transition: text-align 0.2s ease;
+}
+
+.poem.centered {
+  text-align: center;
+  padding: 10px 4px;
 }
 
 .poem-line {
@@ -926,6 +1058,119 @@ html.big .siwoo-line {
   max-width: 100%;
 }
 
+.list .saved-reflection {
+  grid-column: 1 / -1;
+  font-family: var(--font-poem);
+  font-size: 12.5px;
+  color: rgba(237, 241, 247, 0.72);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.underline-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.underline-bookmark {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: var(--moon);
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--night-line);
+  border-left: 3px solid var(--star);
+  border-radius: 4px 12px 12px 4px;
+  padding: 13px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.16s ease;
+}
+
+.underline-bookmark:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(241, 212, 138, 0.55);
+  border-left-color: var(--star);
+  transform: translateY(-1px);
+}
+
+.underline-bookmark:focus-visible {
+  outline: 2px solid var(--star);
+  outline-offset: 2px;
+}
+
+.underline-quote {
+  font-family: var(--font-poem);
+  font-size: 15.5px;
+  line-height: 1.65;
+  color: var(--moon);
+}
+
+.underline-source {
+  font-size: 12px;
+  color: var(--mist);
+}
+
+.reflection-box {
+  border-top: 1px dashed var(--paper-line);
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reflection-label {
+  font-size: 12px;
+  color: var(--paper-quiet);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.reflection-status {
+  font-size: 11px;
+  color: var(--postbox-deep);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.reflection-status.show {
+  opacity: 1;
+}
+
+.reflection-input {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--paper-line);
+  background: rgba(255, 255, 255, 0.42);
+  border-radius: 6px 6px 0 0;
+  padding: 9px 11px;
+  font-family: var(--font-poem);
+  font-size: 14.5px;
+  line-height: 1.75;
+  color: var(--paper-ink);
+  resize: vertical;
+  min-height: 44px;
+}
+
+.reflection-input::placeholder {
+  color: rgba(102, 97, 89, 0.56);
+}
+
+.reflection-input:focus-visible {
+  outline: none;
+  border-bottom-color: var(--postbox);
+  background: rgba(255, 255, 255, 0.72);
+}
+
 .empty {
   border: 1px dashed var(--night-line);
   border-radius: 14px;
@@ -1110,7 +1355,7 @@ nav.tabs .in {
 
 @media (min-width: 768px) {
   nav.tabs .in {
-    max-width: 560px;
+    max-width: 600px;
   }
 }
 
@@ -1152,6 +1397,9 @@ nav.tabs a:focus-visible {
   justify-content: space-between;
   gap: 8px;
   border: 1px solid var(--night-line);
+  background: rgba(255, 255, 255, 0.035);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-radius: 999px;
   padding: 4px;
 }
@@ -1159,6 +1407,7 @@ nav.tabs a:focus-visible {
 .daynav span {
   font-size: 13.5px;
   font-variant-numeric: tabular-nums;
+  color: var(--moon);
 }
 
 .daynav button {
@@ -1168,9 +1417,15 @@ nav.tabs a:focus-visible {
   color: var(--moon);
   font: inherit;
   font-size: 13.5px;
-  padding: 8px 12px;
+  padding: 8px 14px;
   border-radius: 999px;
   cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.daynav button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--star);
 }
 
 .daynav button:disabled {
@@ -1521,8 +1776,8 @@ html.big body {
 }
 
 html.big .poem {
-  font-size: 20.5px;
-  line-height: 2.2;
+  font-size: 21px;
+  line-height: 2.3;
 }
 
 html.big .note {
@@ -1793,10 +2048,6 @@ body.reading .today-head, body.reading .status, body.reading .today-date {
   display: none;
 }
 
-body.reading #todayCard .day-tag {
-  display: none;
-}
-
 body.reading .app {
   gap: 14px;
 }
@@ -1847,7 +2098,7 @@ body.tabs-away .breathe-btn {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  nav.tabs, .breathe-btn, .envelope, .seal, .poem-line {
+  nav.tabs, .breathe-btn, .envelope, .seal, .poem-line, .mail.opening .envelope {
     transition: none;
     animation: none;
   }
@@ -2165,6 +2416,109 @@ body.tabs-away .breathe-btn {
   font-size: 12px;
   color: var(--mist);
   line-height: 1.6;
+}
+
+.postcard-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: rgba(8, 13, 25, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  display: grid;
+  place-items: center;
+  padding: 18px 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.postcard-dialog {
+  width: min(440px, 100%);
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.postcard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.postcard-head span {
+  font-family: var(--font-poem);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--moon);
+}
+
+.postcard-close {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--night-line);
+  color: var(--moon);
+  font: inherit;
+  font-size: 13px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.postcard-close:hover {
+  border-color: var(--star);
+}
+
+.postcard-close:focus-visible {
+  outline: 2px solid var(--star);
+  outline-offset: 2px;
+}
+
+.postcard-preview-wrap {
+  display: grid;
+  place-items: center;
+}
+
+.postcard-canvas {
+  display: block;
+  width: 100%;
+  max-width: 390px;
+  height: auto;
+  aspect-ratio: 3 / 4;
+  border-radius: 10px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+
+.postcard-tip {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--mist);
+}
+
+.postcard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.postcard-dl {
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 14px;
+}
+
+.postcard-copy {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--night-line);
+  color: var(--moon);
+}
+
+.postcard-copy:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: var(--star);
 }
 
 @media (prefers-reduced-motion: reduce) {

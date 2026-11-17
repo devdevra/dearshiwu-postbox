@@ -8,12 +8,14 @@ import {
   LEXICON_WORDS,
   DICTIONARY_ENTRIES
 } from "./data/emotions.js";
-import { renderArtworkCanvas, SCENE_CAPTIONS } from "./components/canvasArt.js";
+import { renderArtworkCanvas, renderPostcardCanvas, SCENE_CAPTIONS } from "./components/canvasArt.js";
 
 const STORAGE_SAVED_KEY = "siu-postbox-saved";
 const STORAGE_INTRO_KEY = "siu-postbox-intro-seen";
 const STORAGE_SIZE_KEY = "siu-postbox-big";
 const STORAGE_UNDERLINES_KEY = "siu-postbox-underlines";
+const STORAGE_REFLECTIONS_KEY = "siu-postbox-reflections";
+const STORAGE_ALIGN_KEY = "siu-postbox-align";
 const STORAGE_THEME_KEY = "siu-postbox-theme";
 
 const WORKS = DAILY_POEMS.map((item, idx) => ({
@@ -23,24 +25,26 @@ const WORKS = DAILY_POEMS.map((item, idx) => ({
   note: item.note || ""
 }));
 
-function loadUnderlines() {
+function loadJsonObject(key) {
   try {
-    const parsed = JSON.parse(localStorage.getItem(STORAGE_UNDERLINES_KEY) || "{}");
+    const parsed = JSON.parse(localStorage.getItem(key) || "{}");
     return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
   } catch {
     return {};
   }
 }
 
-let underlinedMap = loadUnderlines();
-
-function saveUnderlinesToStorage() {
+function saveJsonObject(key, value) {
   try {
-    localStorage.setItem(STORAGE_UNDERLINES_KEY, JSON.stringify(underlinedMap));
+    localStorage.setItem(key, JSON.stringify(value));
   } catch {
     // Ignore storage errors
   }
 }
+
+let underlinedMap = loadJsonObject(STORAGE_UNDERLINES_KEY);
+let reflectionMap = loadJsonObject(STORAGE_REFLECTIONS_KEY);
+let alignPrefMap = loadJsonObject(STORAGE_ALIGN_KEY);
 
 function getUnderlinedIndices(workId) {
   const arr = underlinedMap[workId];
@@ -59,7 +63,7 @@ function togglePoemLineUnderline(workId, lineIdx) {
   } else {
     underlinedMap[workId] = [...current].sort((a, b) => a - b);
   }
-  saveUnderlinesToStorage();
+  saveJsonObject(STORAGE_UNDERLINES_KEY, underlinedMap);
   return current.has(lineIdx);
 }
 
@@ -71,6 +75,29 @@ function getFirstUnderlinedLine(work) {
     if (line && line.trim()) return line.trim();
   }
   return "";
+}
+
+function getReflection(workId) {
+  return typeof reflectionMap[workId] === "string" ? reflectionMap[workId] : "";
+}
+
+function setReflection(workId, text) {
+  const cleaned = text.trim();
+  if (!cleaned) {
+    delete reflectionMap[workId];
+  } else {
+    reflectionMap[workId] = text;
+  }
+  saveJsonObject(STORAGE_REFLECTIONS_KEY, reflectionMap);
+}
+
+function isPoemCentered(work) {
+  if (alignPrefMap[work.id] === "center") return true;
+  if (alignPrefMap[work.id] === "left") return false;
+  const nonEmptyCount = Array.isArray(work.lines)
+    ? work.lines.filter((l) => l && l.trim().length > 0).length
+    : 0;
+  return nonEmptyCount > 0 && nonEmptyCount <= 6;
 }
 
 function loadSavedItems() {
@@ -118,26 +145,16 @@ try {
 
 const BETA_START_DATE = new Date(startTimestamp);
 const betaDayCount = Math.floor((todayMidnight - BETA_START_DATE) / 86400000) + 1;
-const IS_BETA_MODE = location.hash !== "#preview";
+const IS_BETA_MODE = false;
 const EXTERNAL_FORM_URL = "";
 
-const unlockedDayIndex = Math.min(
-  WORKS.length,
-  Math.max(1, currentMoment.getHours() >= 15 ? betaDayCount : betaDayCount - 1)
-);
-const isPreviewWait = IS_BETA_MODE ? unlockedDayIndex < 1 : betaDayCount < 1;
+const unlockedDayIndex = WORKS.length;
+const isPreviewWait = false;
 
-let activeDayIndex = IS_BETA_MODE
-  ? Math.max(1, unlockedDayIndex)
-  : isPreviewWait
-  ? 1
-  : ((betaDayCount - 1) % WORKS.length) + 1;
-
-if (IS_BETA_MODE) {
-  const hashDayMatch = location.hash.match(/^#d(\d{1,2})$/);
-  if (hashDayMatch && Number(hashDayMatch[1]) >= 1 && Number(hashDayMatch[1]) <= unlockedDayIndex) {
-    activeDayIndex = Number(hashDayMatch[1]);
-  }
+let activeDayIndex = 1;
+const hashDayMatch = location.hash.match(/^#d(\d{1,2})$/);
+if (hashDayMatch && Number(hashDayMatch[1]) >= 1 && Number(hashDayMatch[1]) <= WORKS.length) {
+  activeDayIndex = Number(hashDayMatch[1]);
 }
 
 const getPoemByDay = (dayNumber) => WORKS[dayNumber - 1] || WORKS[0];
@@ -150,15 +167,10 @@ function refreshArrivalStatus() {
   const todayThreePm = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 15, 0, 0);
   const hasArrivedToday = now >= todayThreePm;
 
-  document.getElementById("arrival").textContent = IS_BETA_MODE
-    ? activeDayIndex === 1
+  document.getElementById("arrival").textContent =
+    activeDayIndex === 1
       ? `${formatKoreanDate(getDateForDay(1))}, 첫 편지`
-      : `${formatKoreanDate(getDateForDay(activeDayIndex))} 오후 3시에 도착한 편지`
-    : isPreviewWait
-    ? `베타 ${activeDayIndex}일째 편지 미리보기 · ${formatKoreanDate(getDateForDay(activeDayIndex))} 도착 예정`
-    : hasArrivedToday
-    ? `${formatKoreanDate(now)} 오후 3시에 도착한 편지`
-    : `오늘 오후 3시 도착 예정 · 시연판이라 미리 열 수 있어요`;
+      : `${formatKoreanDate(getDateForDay(activeDayIndex))} · ${activeDayIndex}일째 편지`;
 
   const nextThreePm = hasArrivedToday ? new Date(todayThreePm.getTime() + 86400000) : todayThreePm;
   const remainingMinutes = Math.max(0, Math.round((nextThreePm - now) / 60000));
@@ -166,21 +178,12 @@ function refreshArrivalStatus() {
   const mins = remainingMinutes % 60;
 
   document.getElementById("countdown").textContent = `다음 편지까지 ${hours}시간 ${mins}분`;
-  document.getElementById("todayTitle").textContent = IS_BETA_MODE
-    ? isPreviewWait
-      ? "첫 편지가 오고 있어요"
-      : activeDayIndex === 1 && betaDayCount === 1
-      ? "첫 편지가 도착했어요"
-      : activeDayIndex === unlockedDayIndex && hasArrivedToday
-      ? "오늘의 편지가 도착했어요"
-      : activeDayIndex === unlockedDayIndex
-      ? "어제 도착한 편지예요"
-      : `${activeDayIndex}일째 편지예요`
-    : isPreviewWait
-    ? "첫 편지를 미리 열어 볼까요"
-    : hasArrivedToday
-    ? "오늘의 편지가 도착했어요"
-    : "오늘의 편지가 오고 있어요";
+  document.getElementById("todayTitle").textContent =
+    activeDayIndex === 1
+      ? hasArrivedToday
+        ? "오늘의 편지가 도착했어요"
+        : "첫 편지가 도착했어요"
+      : `${activeDayIndex}일째 편지예요`;
 }
 
 refreshArrivalStatus();
@@ -211,23 +214,37 @@ function createCardTemplate(work, options = {}) {
     }
     <p class="art-cap js-artcap"></p>
     <div class="card-body">
-      <div class="day-tag js-day"></div>
-      <h2 class="poem-title js-title"></h2>
-      <div class="byline js-by"></div>
-      <p class="poem"></p>
-      <p class="poem-hint js-poem-hint"></p>
-      <div class="note"><span class="js-note"></span><small>— 시인의 우체통이 덧붙인 한 줄</small></div>
-      <div class="siwoo js-siwoo">
-        <span class="siwoo-head">시인의 편지 한 조각</span>
-        <p class="siwoo-line js-siwoo-text"></p>
-        <small class="js-siwoo-from"></small>
-      </div>
-      <div class="rights js-rights"></div>
-      <div class="actions">
-        <button class="btn js-save" type="button"></button>
-        <a class="btn" href="#mood">다른 마음으로 받기</a>
-        <button class="btn js-zen" type="button" aria-pressed="false">시만 조용히 보기</button>
-        ${options.allowRefold ? `<button class="btn js-refold" type="button">봉투 다시 덮기</button>` : ""}
+      <div class="card-inner-frame">
+        <div class="card-top-row">
+          <div class="day-tag js-day"></div>
+          <button class="align-btn js-align" type="button" aria-pressed="false">가운데 조판</button>
+        </div>
+        <h2 class="poem-title js-title"></h2>
+        <div class="byline js-by"></div>
+        <div class="poem-divider" aria-hidden="true"><span>✦</span></div>
+        <p class="poem"></p>
+        <p class="poem-hint js-poem-hint"></p>
+        <div class="note"><span class="js-note"></span><small>— 시인의 우체통이 덧붙인 한 줄</small></div>
+        <div class="siwoo js-siwoo">
+          <span class="siwoo-head">시인의 편지 한 조각</span>
+          <p class="siwoo-line js-siwoo-text"></p>
+          <small class="js-siwoo-from"></small>
+        </div>
+        <div class="reflection-box">
+          <label class="reflection-label">
+            <span>오늘 내 마음의 한 줄</span>
+            <span class="reflection-status js-ref-status">저장되었어요</span>
+          </label>
+          <textarea class="reflection-input js-reflection-input" rows="2" maxlength="200" placeholder="시를 읽고 떠오른 생각이나 다짐을 가만히 적어 두세요..."></textarea>
+        </div>
+        <div class="rights js-rights"></div>
+        <div class="actions">
+          <button class="btn js-save" type="button"></button>
+          <button class="btn js-postcard" type="button">시 엽서 간직하기</button>
+          <a class="btn" href="#mood">다른 마음으로 받기</a>
+          <button class="btn js-zen" type="button" aria-pressed="false">시만 조용히 보기</button>
+          ${options.allowRefold ? `<button class="btn js-refold" type="button">봉투 다시 덮기</button>` : ""}
+        </div>
       </div>
     </div>
   </article>`;
@@ -256,6 +273,7 @@ function renderPoemLines(poemParagraph, work) {
         const nowUnderlined = togglePoemLineUnderline(work.id, idx);
         lineSpan.classList.toggle("underlined", nowUnderlined);
         lineSpan.setAttribute("aria-pressed", nowUnderlined ? "true" : "false");
+        renderUnderlinedBookmarks();
         renderSavedArchive(false);
         renderPastLettersList();
       };
@@ -276,6 +294,15 @@ function renderPoemLines(poemParagraph, work) {
   });
 }
 
+function formatBylineText(work) {
+  if (work.mine) {
+    return work.source ? `이시우 · ${work.source}` : "이시우";
+  }
+  const lifePart = work.life ? ` (${work.life})` : "";
+  const translatorPart = work.translator ? ` · ${work.translator} 옮김` : "";
+  return `${work.author}${lifePart} · ${work.source}${translatorPart}`;
+}
+
 function mountLetterCard(container, work, options = {}) {
   if (!container || !work) return;
   container.innerHTML = createCardTemplate(work, options);
@@ -284,15 +311,36 @@ function mountLetterCard(container, work, options = {}) {
   select(".js-artcap").textContent = SCENE_CAPTIONS[work.art] || "";
   select(".js-day").textContent = `${work.day}일째 편지 · ${formatKoreanDate(getDateForDay(work.day))}`;
   select(".js-title").textContent = work.title;
-  select(".js-by").textContent = work.mine ? "이시우" : `${work.author} · ${work.source}`;
+  select(".js-by").textContent = formatBylineText(work);
 
   const poemParagraph = select(".poem");
   const hintEl = select(".js-poem-hint");
+  const alignBtn = select(".js-align");
+
+  const applyAlignUI = (centered) => {
+    poemParagraph.classList.toggle("centered", centered);
+    if (alignBtn) {
+      alignBtn.textContent = centered ? "기본 조판" : "가운데 조판";
+      alignBtn.setAttribute("aria-pressed", centered ? "true" : "false");
+    }
+  };
+
   if (work.status === "ready") {
     renderPoemLines(poemParagraph, work);
+    applyAlignUI(isPoemCentered(work));
+    if (alignBtn) {
+      alignBtn.hidden = false;
+      alignBtn.addEventListener("click", () => {
+        const nextCentered = !poemParagraph.classList.contains("centered");
+        alignPrefMap[work.id] = nextCentered ? "center" : "left";
+        saveJsonObject(STORAGE_ALIGN_KEY, alignPrefMap);
+        applyAlignUI(nextCentered);
+      });
+    }
     hintEl.textContent = "마음에 머무는 구절을 눌러 밑줄을 그어 보세요";
     hintEl.hidden = false;
   } else {
+    if (alignBtn) alignBtn.hidden = true;
     poemParagraph.classList.add("poem-pending");
     poemParagraph.textContent =
       work.status === "own"
@@ -314,6 +362,23 @@ function mountLetterCard(container, work, options = {}) {
   }
 
   select(".js-rights").hidden = true;
+
+  const refInput = select(".js-reflection-input");
+  const refStatus = select(".js-ref-status");
+  if (refInput) {
+    refInput.value = getReflection(work.id);
+    let refTimer = null;
+    refInput.addEventListener("input", () => {
+      setReflection(work.id, refInput.value);
+      if (refStatus) {
+        refStatus.classList.add("show");
+        clearTimeout(refTimer);
+        refTimer = setTimeout(() => refStatus.classList.remove("show"), 1600);
+      }
+      renderSavedArchive(false);
+      renderPastLettersList();
+    });
+  }
 
   const canvas = container.querySelector("canvas");
   if (canvas) {
@@ -341,6 +406,11 @@ function mountLetterCard(container, work, options = {}) {
 
   updateSaveButton();
 
+  const postcardBtn = container.querySelector(".js-postcard");
+  if (postcardBtn) {
+    postcardBtn.addEventListener("click", () => openPostcardModal(work));
+  }
+
   const zenBtn = container.querySelector(".js-zen");
   if (zenBtn) {
     zenBtn.addEventListener("click", () => {
@@ -358,19 +428,21 @@ function mountLetterCard(container, work, options = {}) {
 
 const mailWrapper = document.getElementById("mail");
 const dayLabelEl = document.getElementById("dayLabel");
+let isEnvelopeAnimating = false;
 
 function updateAfterReadBanner() {
   const afterBox = document.getElementById("afterRead");
   afterBox.hidden = !mailWrapper.classList.contains("open");
-  const isEarlyMorning = new Date().getHours() < 15 && betaDayCount > 1 && activeDayIndex === unlockedDayIndex;
+  const isEarlyMorning = new Date().getHours() < 15 && activeDayIndex === 1;
   document.getElementById("afterMain").textContent = isEarlyMorning
-    ? "편지를 읽었어요.\n오늘 오후 3시에 새 편지가 와요."
-    : "오늘의 편지를 읽었어요.\n내일 오후 3시에 또 올게요.";
+    ? "오늘의 편지를 읽었어요.\n내일 오후 3시에 또 올게요."
+    : "편지를 천천히 읽었어요.\n다른 날 편지도 아래에서 꺼내 보실 수 있어요.";
 }
 
 function closeOpenLetter() {
   exitZenMode();
-  mailWrapper.classList.remove("open");
+  isEnvelopeAnimating = false;
+  mailWrapper.classList.remove("open", "opening");
   document.getElementById("todayCard").innerHTML = "";
   document.body.classList.remove("reading", "tabs-away");
   document.querySelector(".env-to").textContent = "다시 읽기";
@@ -385,11 +457,23 @@ document.querySelector('nav.tabs a[data-tab="today"]').addEventListener("click",
 });
 
 document.getElementById("envelope").addEventListener("click", () => {
-  mailWrapper.classList.add("open");
-  document.body.classList.add("reading");
-  mountLetterCard(document.getElementById("todayCard"), getPoemByDay(activeDayIndex), { allowRefold: true });
-  updateAfterReadBanner();
-  window.scrollTo(0, 0);
+  if (isEnvelopeAnimating || mailWrapper.classList.contains("open")) return;
+  const finishOpen = () => {
+    isEnvelopeAnimating = false;
+    mailWrapper.classList.remove("opening");
+    mailWrapper.classList.add("open");
+    document.body.classList.add("reading");
+    mountLetterCard(document.getElementById("todayCard"), getPoemByDay(activeDayIndex), { allowRefold: true });
+    updateAfterReadBanner();
+    window.scrollTo(0, 0);
+  };
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    finishOpen();
+    return;
+  }
+  isEnvelopeAnimating = true;
+  mailWrapper.classList.add("opening");
+  setTimeout(finishOpen, 280);
 });
 
 let lastScrollY = 0;
@@ -832,9 +916,7 @@ function renderCustomWrite(fallbackFeeling) {
       makeNode(
         "p",
         "f-privacy",
-        IS_BETA_MODE
-          ? "적어 주신 말은 이 화면에서만 보이고 어디에도 저장되지 않아요."
-          : "시연판이라 저장되지 않아요. 실제 서비스에서는 동의한 분의 말만 익명으로 모아 '이달의 감정'으로 돌려드려요."
+        "적어 주신 말은 이 화면에서만 보이고 서버에 저장되지 않아요."
       ),
       makeActionBtn("이 마음으로 편지 받기", "f-opt", () => showLetterForFeeling(matched))
     );
@@ -896,6 +978,49 @@ moodNextBtn.addEventListener("click", () => {
 const savedBoxListEl = document.getElementById("boxList");
 const boxCardContainer = document.getElementById("boxCard");
 const pastLettersListEl = document.getElementById("pastList");
+const underlineSectionEl = document.getElementById("underlineSection");
+const underlineListEl = document.getElementById("underlineList");
+
+function renderUnderlinedBookmarks() {
+  if (!underlineSectionEl || !underlineListEl) return;
+  underlineListEl.innerHTML = "";
+  const entries = [];
+  WORKS.forEach((work) => {
+    const indices = getUnderlinedIndices(work.id);
+    indices.forEach((idx) => {
+      const line = work.lines && work.lines[idx];
+      if (line && line.trim()) {
+        entries.push({ work, line: line.trim() });
+      }
+    });
+  });
+
+  if (!entries.length) {
+    underlineSectionEl.hidden = true;
+    return;
+  }
+
+  underlineSectionEl.hidden = false;
+  entries.forEach(({ work, line }) => {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "underline-bookmark";
+    btn.append(
+      makeNode("span", "underline-quote", `「${line}」`),
+      makeNode("span", "underline-source", `${work.title} · ${work.mine ? "이시우" : work.author}`)
+    );
+    btn.addEventListener("click", () => {
+      mountLetterCard(boxCardContainer, work);
+      boxCardContainer.scrollIntoView({
+        behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "start"
+      });
+    });
+    li.appendChild(btn);
+    underlineListEl.appendChild(li);
+  });
+}
 
 function createArchiveListItem(work, badgeText) {
   const li = document.createElement("li");
@@ -923,6 +1048,11 @@ function createArchiveListItem(work, badgeText) {
       metaRow.append(makeNode("span", "saved-underline", `밑줄 · 「${underlinedLine}」`));
     }
     btn.append(metaRow);
+  }
+
+  const reflection = getReflection(work.id).trim();
+  if (reflection) {
+    btn.append(makeNode("span", "saved-reflection", `내 기록 · ${reflection}`));
   }
 
   btn.addEventListener("click", () => {
@@ -957,8 +1087,7 @@ function renderSavedArchive(clearCard) {
 
 function renderPastLettersList() {
   pastLettersListEl.innerHTML = "";
-  const maxDay = IS_BETA_MODE ? unlockedDayIndex : activeDayIndex;
-  for (let d = maxDay; d >= 1; d--) {
+  for (let d = WORKS.length; d >= 1; d--) {
     const work = getPoemByDay(d);
     pastLettersListEl.appendChild(createArchiveListItem(work, `${d}일째`));
   }
@@ -971,6 +1100,10 @@ function selectDayToView(dayNumber) {
   document.getElementById("dayNext").disabled = activeDayIndex >= WORKS.length;
   if (mailWrapper.classList.contains("open")) {
     mountLetterCard(document.getElementById("todayCard"), getPoemByDay(activeDayIndex), { allowRefold: true });
+    window.scrollTo({
+      top: 0,
+      behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"
+    });
   }
   refreshArrivalStatus();
   renderPastLettersList();
@@ -979,6 +1112,7 @@ function selectDayToView(dayNumber) {
 document.getElementById("dayPrev").addEventListener("click", () => selectDayToView(activeDayIndex - 1));
 document.getElementById("dayNext").addEventListener("click", () => selectDayToView(activeDayIndex + 1));
 
+renderUnderlinedBookmarks();
 renderSavedArchive(true);
 selectDayToView(activeDayIndex);
 
@@ -1035,7 +1169,7 @@ joinFormEl.addEventListener("submit", (e) => {
   p.textContent = `${nick ? nick + "님, " : ""}내일 ${timeText}부터 ${channelText}로 첫 편지를 보내 드릴게요.`;
   const sm = document.createElement("small");
   sm.textContent =
-    "시연판이라 실제로 신청되지는 않았고, 입력한 내용은 어디에도 저장되지 않았어요. 베타가 열리면 이 화면에서 실제 신청을 받습니다.";
+    "현재 정식 편지 발송을 준비하고 있어요. 입력하신 정보는 어디에도 저장되지 않았으며, 오늘의 편지 탭에서 30일치 시를 바로 감상하실 수 있어요.";
   doneBox.append(p, sm);
   doneBox.hidden = false;
   joinFormEl.hidden = true;
@@ -1242,11 +1376,93 @@ function closeSosDialog() {
   breatheTriggerBtn.focus();
 }
 
+const postcardModal = document.getElementById("postcardModal");
+const postcardCanvasEl = document.getElementById("postcardCanvas");
+const postcardCloseBtn = document.getElementById("postcardClose");
+const postcardDownloadBtn = document.getElementById("postcardDownload");
+const postcardCopyBtn = document.getElementById("postcardCopy");
+let activePostcardWork = null;
+let activePostcardQuote = "";
+
+function openPostcardModal(work) {
+  if (!postcardModal || !postcardCanvasEl || !work) return;
+  activePostcardWork = work;
+  const indices = getUnderlinedIndices(work.id);
+  const selectedLines = indices
+    .map((idx) => (work.lines && work.lines[idx] ? work.lines[idx].trim() : ""))
+    .filter(Boolean);
+  activePostcardQuote = selectedLines.slice(0, 4).join("\n");
+  const dateLabel = `${work.day}일째 · ${formatKoreanDate(getDateForDay(work.day))}`;
+
+  renderPostcardCanvas(postcardCanvasEl, work, activePostcardQuote, dateLabel);
+  if (postcardCopyBtn) postcardCopyBtn.textContent = "시 구절 복사하기";
+  postcardModal.hidden = false;
+  document.body.style.overflow = "hidden";
+  if (postcardCloseBtn) postcardCloseBtn.focus({ preventScroll: true });
+}
+
+function closePostcardModal() {
+  if (!postcardModal || postcardModal.hidden) return;
+  postcardModal.hidden = true;
+  document.body.style.overflow = "";
+}
+
+if (postcardCloseBtn) postcardCloseBtn.addEventListener("click", closePostcardModal);
+if (postcardModal) {
+  postcardModal.addEventListener("click", (e) => {
+    if (e.target === postcardModal) closePostcardModal();
+  });
+}
+
+if (postcardDownloadBtn) {
+  postcardDownloadBtn.addEventListener("click", () => {
+    if (!postcardCanvasEl || !activePostcardWork) return;
+    const link = document.createElement("a");
+    link.download = `dearshiwu-${activePostcardWork.id}.png`;
+    link.href = postcardCanvasEl.toDataURL("image/png");
+    link.click();
+  });
+}
+
+if (postcardCopyBtn) {
+  postcardCopyBtn.addEventListener("click", async () => {
+    if (!activePostcardWork) return;
+    const snippet =
+      activePostcardQuote ||
+      (activePostcardWork.lines || []).filter((l) => l.trim()).slice(0, 4).join("\n");
+    const copyText = `「${activePostcardWork.title}」 — ${activePostcardWork.author}\n\n${snippet}`;
+    let copied = false;
+    try {
+      await navigator.clipboard.writeText(copyText);
+      copied = true;
+    } catch {
+      try {
+        const tempArea = document.createElement("textarea");
+        tempArea.value = copyText;
+        tempArea.style.position = "fixed";
+        tempArea.style.opacity = "0";
+        document.body.appendChild(tempArea);
+        tempArea.select();
+        copied = document.execCommand("copy");
+        tempArea.remove();
+      } catch {
+        copied = false;
+      }
+    }
+    postcardCopyBtn.textContent = copied ? "복사되었어요 ✓" : "복사를 지원하지 않아요";
+    setTimeout(() => {
+      postcardCopyBtn.textContent = "시 구절 복사하기";
+    }, 2200);
+  });
+}
+
 breatheTriggerBtn.addEventListener("click", openSosDialog);
 document.getElementById("sosClose").addEventListener("click", closeSosDialog);
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
-    if (!sosDialog.hidden) {
+    if (postcardModal && !postcardModal.hidden) {
+      closePostcardModal();
+    } else if (!sosDialog.hidden) {
       closeSosDialog();
     } else if (document.body.classList.contains("zen-mode")) {
       exitZenMode();
@@ -1410,9 +1626,16 @@ if (themeBtn) {
   });
 }
 
+const SOUND_MODES = [
+  { key: "off", label: "소리", aria: "잔잔한 자연 소리 켜기" },
+  { key: "rain", label: "빗소리", aria: "빗소리 재생 중 · 눌러서 파도결로 바꾸기" },
+  { key: "wave", label: "파도결", aria: "파도결 재생 중 · 눌러서 밤명상으로 바꾸기" },
+  { key: "meditation", label: "밤명상", aria: "밤명상 재생 중 · 눌러서 끄기" }
+];
+
 const soundBtn = document.getElementById("soundBtn");
 let ambientAudio = null;
-let isSoundPlaying = false;
+let soundModeIdx = 0;
 
 function initAmbientAudioGraph() {
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -1422,7 +1645,6 @@ function initAmbientAudioGraph() {
   const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
   const data = noiseBuffer.getChannelData(0);
 
-  // Generate warm pink/brownish noise for calm rain & night breeze texture
   let b0 = 0;
   let b1 = 0;
   let b2 = 0;
@@ -1434,124 +1656,135 @@ function initAmbientAudioGraph() {
     data[i] = (b0 + b1 + b2 + white * 0.1848) * 0.08;
   }
 
-  const noiseSource = ctx.createBufferSource();
-  noiseSource.buffer = noiseBuffer;
-  noiseSource.loop = true;
-
-  const lowpass = ctx.createBiquadFilter();
-  lowpass.type = "lowpass";
-  lowpass.frequency.value = 520;
-
-  const bandpass = ctx.createBiquadFilter();
-  bandpass.type = "bandpass";
-  bandpass.frequency.value = 1200;
-  bandpass.Q.value = 0.7;
-
   const masterGain = ctx.createGain();
-  masterGain.gain.value = 0.0001;
-
-  // Slow breathing modulation for gentle breeze swells
-  const lfo = ctx.createOscillator();
-  lfo.frequency.value = 0.09;
-  const lfoGain = ctx.createGain();
-  lfoGain.gain.value = 140;
-  lfo.connect(lfoGain);
-  lfoGain.connect(lowpass.frequency);
-
-  noiseSource.connect(lowpass);
-  lowpass.connect(masterGain);
-  noiseSource.connect(bandpass);
-  const shimmerGain = ctx.createGain();
-  shimmerGain.gain.value = 0.12;
-  bandpass.connect(shimmerGain);
-  shimmerGain.connect(masterGain);
-
+  masterGain.gain.value = 0.9;
   masterGain.connect(ctx.destination);
-  noiseSource.start();
-  lfo.start();
 
-  return { ctx, masterGain };
+  // Bus 1: Gentle rain
+  const rainSource = ctx.createBufferSource();
+  rainSource.buffer = noiseBuffer;
+  rainSource.loop = true;
+  const rainLowpass = ctx.createBiquadFilter();
+  rainLowpass.type = "lowpass";
+  rainLowpass.frequency.value = 680;
+  const rainBand = ctx.createBiquadFilter();
+  rainBand.type = "bandpass";
+  rainBand.frequency.value = 1450;
+  rainBand.Q.value = 0.8;
+  const rainBandGain = ctx.createGain();
+  rainBandGain.gain.value = 0.16;
+  const rainGain = ctx.createGain();
+  rainGain.gain.value = 0.0001;
+  rainSource.connect(rainLowpass);
+  rainLowpass.connect(rainGain);
+  rainSource.connect(rainBand);
+  rainBand.connect(rainBandGain);
+  rainBandGain.connect(rainGain);
+  rainGain.connect(masterGain);
+
+  // Bus 2: Slow breathing ocean waves
+  const waveSource = ctx.createBufferSource();
+  waveSource.buffer = noiseBuffer;
+  waveSource.loop = true;
+  const waveFilter = ctx.createBiquadFilter();
+  waveFilter.type = "lowpass";
+  waveFilter.frequency.value = 340;
+  const waveLfo = ctx.createOscillator();
+  waveLfo.frequency.value = 0.085;
+  const waveLfoGain = ctx.createGain();
+  waveLfoGain.gain.value = 180;
+  waveLfo.connect(waveLfoGain);
+  waveLfoGain.connect(waveFilter.frequency);
+  const waveGain = ctx.createGain();
+  waveGain.gain.value = 0.0001;
+  waveSource.connect(waveFilter);
+  waveFilter.connect(waveGain);
+  waveGain.connect(masterGain);
+
+  // Bus 3: Night meditation harmonic drone (216Hz + 324Hz + soft air)
+  const droneOsc1 = ctx.createOscillator();
+  droneOsc1.type = "sine";
+  droneOsc1.frequency.value = 216;
+  const droneOsc2 = ctx.createOscillator();
+  droneOsc2.type = "sine";
+  droneOsc2.frequency.value = 324;
+  const droneOsc1Gain = ctx.createGain();
+  droneOsc1Gain.gain.value = 0.045;
+  const droneOsc2Gain = ctx.createGain();
+  droneOsc2Gain.gain.value = 0.025;
+  const medAirSource = ctx.createBufferSource();
+  medAirSource.buffer = noiseBuffer;
+  medAirSource.loop = true;
+  const medAirFilter = ctx.createBiquadFilter();
+  medAirFilter.type = "lowpass";
+  medAirFilter.frequency.value = 260;
+  const medAirGain = ctx.createGain();
+  medAirGain.gain.value = 0.14;
+  const medGain = ctx.createGain();
+  medGain.gain.value = 0.0001;
+
+  droneOsc1.connect(droneOsc1Gain);
+  droneOsc1Gain.connect(medGain);
+  droneOsc2.connect(droneOsc2Gain);
+  droneOsc2Gain.connect(medGain);
+  medAirSource.connect(medAirFilter);
+  medAirFilter.connect(medAirGain);
+  medAirGain.connect(medGain);
+  medGain.connect(masterGain);
+
+  rainSource.start();
+  waveSource.start();
+  waveLfo.start();
+  droneOsc1.start();
+  droneOsc2.start();
+  medAirSource.start();
+
+  return {
+    ctx,
+    buses: { rain: rainGain, wave: waveGain, meditation: medGain }
+  };
 }
 
 function updateSoundButtonUI() {
   if (!soundBtn) return;
-  soundBtn.setAttribute("aria-pressed", isSoundPlaying ? "true" : "false");
-  soundBtn.setAttribute("aria-label", isSoundPlaying ? "잔잔한 자연 소리 끄기" : "잔잔한 자연 소리 켜기");
+  const mode = SOUND_MODES[soundModeIdx] || SOUND_MODES[0];
+  const isPlaying = mode.key !== "off";
+  soundBtn.setAttribute("aria-pressed", isPlaying ? "true" : "false");
+  soundBtn.setAttribute("aria-label", mode.aria);
   const labelSpan = soundBtn.querySelector(".ctrl-label");
-  if (labelSpan) labelSpan.textContent = isSoundPlaying ? "켜짐" : "소리";
+  if (labelSpan) labelSpan.textContent = mode.label;
 }
 
 if (soundBtn) {
   soundBtn.addEventListener("click", () => {
+    soundModeIdx = (soundModeIdx + 1) % SOUND_MODES.length;
+    const mode = SOUND_MODES[soundModeIdx];
     try {
-      if (!ambientAudio) {
+      if (!ambientAudio && mode.key !== "off") {
         ambientAudio = initAmbientAudioGraph();
       }
-      if (!ambientAudio) {
-        isSoundPlaying = false;
-        updateSoundButtonUI();
-        return;
-      }
-      const { ctx, masterGain } = ambientAudio;
-      if (ctx.state === "suspended") {
-        ctx.resume();
-      }
-      const now = ctx.currentTime;
-      masterGain.gain.cancelScheduledValues(now);
-      masterGain.gain.setValueAtTime(Math.max(0.0001, masterGain.gain.value), now);
-      if (!isSoundPlaying) {
-        masterGain.gain.exponentialRampToValueAtTime(0.28, now + 0.85);
-        isSoundPlaying = true;
-      } else {
-        masterGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
-        isSoundPlaying = false;
+      if (ambientAudio) {
+        const { ctx, buses } = ambientAudio;
+        if (ctx.state === "suspended" && mode.key !== "off") {
+          ctx.resume();
+        }
+        const now = ctx.currentTime;
+        const targets = {
+          rain: mode.key === "rain" ? 0.28 : 0.0001,
+          wave: mode.key === "wave" ? 0.34 : 0.0001,
+          meditation: mode.key === "meditation" ? 0.65 : 0.0001
+        };
+        Object.entries(buses).forEach(([key, gainNode]) => {
+          gainNode.gain.cancelScheduledValues(now);
+          gainNode.gain.setValueAtTime(Math.max(0.0001, gainNode.gain.value), now);
+          gainNode.gain.exponentialRampToValueAtTime(targets[key], now + 0.65);
+        });
       }
     } catch {
-      isSoundPlaying = false;
+      soundModeIdx = 0;
     }
     updateSoundButtonUI();
   });
-}
-
-if (IS_BETA_MODE) {
-  document.querySelector(".daynav").hidden = true;
-  document.querySelectorAll(".proto").forEach((el) => {
-    el.hidden = true;
-  });
-  const sosNote = document.querySelector(".sos-note");
-  if (sosNote) {
-    sosNote.textContent = "시인의 우체통은 의료기기가 아니며 진단·치료를 대신하지 않습니다.";
-  }
-  if (isPreviewWait) {
-    document.getElementById("envelope").disabled = true;
-    document.querySelector(".env-to").textContent = `${formatKoreanDate(BETA_START_DATE)} 오후 3시에 열려요`;
-  }
-  const joinSection = document.querySelector('section[data-view="join"]');
-  joinFormEl.hidden = true;
-  const existingBetaDone = joinSection.querySelector(".js-beta-done");
-  if (!existingBetaDone) {
-    const betaNoticeBox = document.createElement("div");
-    betaNoticeBox.className = "done js-beta-done";
-    const p1 = document.createElement("p");
-    p1.style.margin = "0";
-    p1.textContent = "신청하면 매일 오후 3시에 편지 링크를 보내 드려요.";
-    betaNoticeBox.append(p1);
-    if (EXTERNAL_FORM_URL) {
-      const link = document.createElement("a");
-      link.className = "submit";
-      link.href = EXTERNAL_FORM_URL;
-      link.target = "_blank";
-      link.rel = "noopener";
-      link.textContent = "편지 받기 신청";
-      link.style.cssText = "display:inline-block;margin-top:14px;text-decoration:none";
-      betaNoticeBox.append(link);
-    } else {
-      const sm = document.createElement("small");
-      sm.textContent = "신청 링크를 준비하고 있어요.";
-      betaNoticeBox.append(sm);
-    }
-    joinSection.append(betaNoticeBox);
-  }
 }
 
 const why3Box = document.getElementById("why3");
@@ -1591,6 +1824,7 @@ function handleRouteChange() {
     }
   });
   if (currentView === "box") {
+    renderUnderlinedBookmarks();
     renderSavedArchive(false);
     renderPastLettersList();
   }
