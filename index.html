@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="매일 오후 3시, 시와 그림이 담긴 편지가 도착해요. 시 한 번에 호흡 한 번, 잠시 나를 만나는 시간.">
+  <meta name="theme-color" content="#0c1424">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="canonical" href="https://dearshiwu.com/">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ko_KR">
+  <meta property="og:site_name" content="시인의 우체통">
+  <meta property="og:title" content="시인의 우체통 · 잠시 나를 만나는 시간">
+  <meta property="og:description" content="매일 오후 3시, 시와 그림이 담긴 편지가 도착해요. 시 한 번에 호흡 한 번, 잠시 나를 만나는 시간.">
+  <meta property="og:url" content="https://dearshiwu.com/">
+  <title>시인의 우체통 — 잠시 나를 만나는 시간</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500&family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <a class="brand" href="#today" aria-label="시인의 우체통 처음으로">
+        <svg width="30" height="36" viewBox="0 0 30 36" aria-hidden="true">
+          <rect x="5" y="2" width="20" height="6" rx="3" fill="var(--postbox-deep)"></rect>
+          <rect x="6" y="6" width="18" height="24" rx="4" fill="var(--postbox)"></rect>
+          <rect x="9" y="12" width="12" height="2.5" rx="1.2" fill="var(--night)"></rect>
+          <rect x="11" y="30" width="8" height="5" fill="var(--postbox-deep)"></rect>
+        </svg>
+        <span class="brand-txt"><b>시인의 우체통</b><small>잠시 나를 만나는 시간</small></span>
+      </a>
+      <div class="top-right">
+        <span class="today-date" id="todayDate">11월 17일</span>
+        <button class="ctrl-btn" id="themeBtn" type="button" aria-label="배경 분위기 바꾸기: 밤의 고요" title="배경 분위기 바꾸기">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>
+          </svg>
+          <span class="ctrl-label">밤</span>
+        </button>
+        <button class="ctrl-btn" id="soundBtn" type="button" aria-pressed="false" aria-label="잔잔한 자연 소리 켜기" title="잔잔한 빗소리 켜기/끄기">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+            <path class="sound-wave" d="M15.5 8.5a5 5 0 0 1 0 7"></path>
+          </svg>
+          <span class="ctrl-label">소리</span>
+        </button>
+        <button class="size-btn" id="sizeBtn" type="button" aria-pressed="false" aria-label="글자 크게 보기">가<span>+</span></button>
+      </div>
+    </header>
+
+    <section data-view="today" aria-labelledby="todayTitle">
+      <div class="today-head">
+        <span class="badge">매일 오후 3시</span>
+        <h1 id="todayTitle" style="margin-top:10px">첫 편지가 도착했어요</h1>
+      </div>
+      <div class="mail" id="mail">
+        <button class="envelope" id="envelope" type="button" aria-label="오늘의 편지 열기">
+          <span class="env-paper-lines" aria-hidden="true"></span>
+          <span class="env-stamp" aria-hidden="true">
+            <span class="stamp-inner">詩 · 3PM</span>
+          </span>
+          <span class="flap" aria-hidden="true"></span>
+          <span class="seal" aria-hidden="true">3 PM</span>
+          <span class="env-to">눌러서 열어 보세요</span>
+        </button>
+        <div id="todayCard"></div>
+        <div class="after-read" id="afterRead" hidden="">
+          <p id="afterMain">오늘의 편지를 읽었어요.
+내일 오후 3시에 또 올게요.</p>
+          <p class="after-sub">홈 화면에 추가해 두고 자주 들러 주세요 :)</p>
+        </div>
+      </div>
+      <div class="status">
+        <span id="arrival">11월 17일, 첫 편지</span>
+        <span id="countdown">다음 편지까지 3시간 44분</span>
+      </div>
+      <div class="daynav" role="group" aria-label="시연용: 다른 날 편지 보기" hidden="">
+        <button type="button" id="dayPrev" aria-label="이전 날 편지" disabled="">‹ 이전 날</button>
+        <span id="dayLabel">1일째 · 11월 17일</span>
+        <button type="button" id="dayNext" aria-label="다음 날 편지">다음 날 ›</button>
+      </div>
+      <p class="proto" style="margin:0" hidden="">시연용 기능이에요. 실제 서비스에서는 오늘 편지만 열리고, 지난 편지는 보관함에 쌓여요.</p>
+    </section>
+
+    <section data-view="mood" aria-labelledby="moodTitle" hidden="">
+      <div>
+        <h1 id="moodTitle">오늘 마음에 가까운 말이 있나요</h1>
+        <p class="lead">골라도 되고, 그냥 지나가도 괜찮아요.</p>
+      </div>
+      <div class="chips" id="chips" role="group" aria-label="마음 고르기"></div>
+      <p class="f-ask-small">원하는 감정이 없다면 ?를 눌러 보세요.</p>
+      <div class="chips" id="finderRow" role="group" aria-label="다른 방법으로 찾기" hidden=""></div>
+      <div class="finder" id="finder" hidden=""></div>
+      <div id="moodCard"></div>
+      <button class="ghost" id="moodNext" type="button" hidden="">같은 마음으로 한 편 더</button>
+    </section>
+
+    <section data-view="box" aria-labelledby="boxTitle" hidden="">
+      <div>
+        <h1 id="boxTitle">보관함</h1>
+        <p class="lead">다시 읽고 싶은 편지를 모아 두는 곳이에요.</p>
+      </div>
+      <h2 class="sub-h">보관한 편지</h2>
+      <ul class="list" id="boxList"></ul>
+      <h2 class="sub-h">지난 편지</h2>
+      <ul class="list" id="pastList"></ul>
+      <div id="boxCard"></div>
+    </section>
+
+    <section data-view="join" aria-labelledby="joinTitle" hidden="">
+      <div>
+        <h1 id="joinTitle">편지 받기</h1>
+        <p class="lead">하루 한 번, 오후 3시에 시 한 편과 그림 한 장을 보내 드려요.</p>
+      </div>
+      <button class="why3-env" id="why3Env" type="button" aria-label="시인의 우체통 안내 펼치기" hidden="">
+        <span class="w-flap" aria-hidden="true"></span>
+        <span class="w-seal" aria-hidden="true">Dear<br>Shiwu</span>
+        <span class="w-to">눌러서 펼쳐 보세요</span>
+      </button>
+      <div class="why3" id="why3">
+        <svg class="why3-art" viewBox="0 0 640 400" role="img" aria-label="오후 햇살 아래 언덕 위 빨간 우체통과 그 곁에 앉은 여우">
+          <defs>
+            <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#cfd8e3"></stop>
+              <stop offset="1" stop-color="#efe3cf"></stop>
+            </linearGradient>
+          </defs>
+          <rect width="640" height="400" fill="url(#sky)"></rect>
+          <circle cx="470" cy="118" r="34" fill="#f4d9a4"></circle>
+          <circle cx="470" cy="118" r="54" fill="#f4d9a4" opacity=".25"></circle>
+          <path d="M168 92q8-7 16 0q8-7 16 0" fill="none" stroke="#5b6577" stroke-width="2.4" stroke-linecap="round"></path>
+          <path d="M0 236C70 206 130 214 190 228S300 196 370 210 500 238 640 212V400H0Z" fill="#b9c3cf"></path>
+          <path d="M0 280C90 252 170 262 250 276S400 250 470 262 580 284 640 270V400H0Z" fill="#97a8b5"></path>
+          <path d="M0 330C110 300 230 296 330 300S520 318 640 304V400H0Z" fill="#6f8790"></path>
+          <g transform="translate(232 196)">
+            <ellipse cx="34" cy="112" rx="46" ry="7" fill="#4f6670" opacity=".55"></ellipse>
+            <rect x="28" y="70" width="12" height="42" fill="#7a2a21"></rect>
+            <rect x="6" y="12" width="56" height="64" rx="8" fill="#d2402f"></rect>
+            <path d="M2 16Q34 -6 66 16Z" fill="#a52e21"></path>
+            <rect x="16" y="30" width="36" height="6" rx="3" fill="#7a2a21"></rect>
+            <g transform="translate(20 6) rotate(-10)">
+              <rect x="0" y="0" width="30" height="20" rx="2" fill="#fbf6ec"></rect>
+              <path d="M0 0L15 11L30 0" fill="none" stroke="#c9b99c" stroke-width="1.6"></path>
+            </g>
+          </g>
+          <g transform="translate(330 248)">
+            <path d="M44 58C66 60 84 50 86 34C88 22 80 16 74 22C78 34 70 46 46 48Z" fill="#c9773f"></path>
+            <path d="M74 22C80 16 88 22 86 34C82 30 78 26 74 22Z" fill="#f6ecdd"></path>
+            <path d="M26 60C10 60 4 46 8 32C11 22 18 16 28 16C38 16 46 22 48 34C50 48 42 60 26 60Z" fill="#d9874a"></path>
+            <path d="M14 20C14 8 22 0 30 0C38 0 44 8 42 20C38 26 18 26 14 20Z" fill="#d9874a"></path>
+            <path d="M16 10L12 -12L26 2Z" fill="#d9874a"></path>
+            <path d="M32 2L40 -12L42 10Z" fill="#d9874a"></path>
+            <path d="M14 -6L12 -12L17 -7Z" fill="#5a3a2a"></path>
+            <path d="M38 -7L40 -12L40.5 -5Z" fill="#5a3a2a"></path>
+          </g>
+        </svg>
+        <p class="why3-dear">Dear Shiwu,</p>
+        <p>시인의 우체통은 세상에 놓인 작은 우체통이에요.<br>시인이 세상에 보내는 편지이자,<br>읽는 사람이 자기 삶을 잠시<br>바라볼 수 있도록 건네는 작은 선물이에요.</p>
+        <h2>왜 오후 세 시일까요?</h2>
+        <p>어린 왕자의 여우는 말했어요. 네가 네 시에 온다면,<br>나는 세 시부터 행복해지기 시작할 거라고.<br>그래서 시인의 우체통은 오후 세 시에 찾아가요.<br>‘아, 오늘 편지 오는 날이지’ 하고 하루가 한 번 쉬어 가도록.<br>누군가 나를 생각하고 있다는 걸 느낄 수 있도록.</p>
+        <p class="why3-from"><span>From</span> 시인의 우체통</p>
+        <button class="why3-fold" id="why3Fold" type="button" aria-label="안내문 접어 두기" title="접어 두기"></button>
+      </div>
+      <form id="joinForm" novalidate="" hidden="">
+        <div>
+          <label class="f" for="nick">부를 이름 (선택)</label>
+          <input type="text" id="nick" name="nick" autocomplete="nickname" placeholder="예: 별빛">
+        </div>
+        <fieldset>
+          <legend>받을 시간</legend>
+          <div class="opts">
+            <label class="opt"><input type="radio" name="time" id="t8" value="08:00"><span>아침 8시</span></label>
+            <label class="opt"><input type="radio" name="time" id="t12" value="12:00"><span>낮 12시</span></label>
+            <label class="opt"><input type="radio" name="time" id="t15" value="15:00" checked=""><span>오후 3시</span></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>받는 방법</legend>
+          <div class="opts">
+            <label class="opt"><input type="radio" name="channel" id="cK" value="kakao" checked=""><span>카카오톡</span></label>
+            <label class="opt"><input type="radio" name="channel" id="cS" value="sms"><span>문자</span></label>
+            <label class="opt"><input type="radio" name="channel" id="cE" value="email"><span>이메일</span></label>
+          </div>
+        </fieldset>
+        <div>
+          <label class="f" for="contact" id="contactLabel">휴대폰 번호</label>
+          <input type="tel" id="contact" name="contact" inputmode="tel" placeholder="010-0000-0000">
+        </div>
+        <label class="check"><input type="checkbox" id="adult"> <span>만 19세 이상이에요.</span></label>
+        <label class="check"><input type="checkbox" id="agree"> <span>편지 발송을 위한 연락처 수집·이용에 동의해요. 언제든 메시지 속 링크로 그만 받을 수 있어요.</span></label>
+        <p class="err" id="joinErr" role="alert"></p>
+        <button class="submit" type="submit">편지 받기 신청</button>
+      </form>
+      <div class="done" id="joinDone" hidden=""></div>
+      <details class="credits">
+        <summary>자료 출처</summary>
+        <p>한국 시의 감정 정보: 한국학중앙연구원 디지털인문학연구소, 「KPoEM(Korean Poetry Emotion Mapping) 데이터셋」(2025), CC BY 4.0. 시인의 우체통이 8가지 감정으로 묶어 사용했어요.</p>
+        <p>감정 단어: 박인조·민경환(2005), 「한국어 감정단어의 목록 작성과 차원 탐색」. 뜻풀이와 예문: 국립국어원 표준국어대사전(CC BY-SA 2.0 KR).</p>
+        <p>외국 시 원문: Project Gutenberg.</p>
+      </details>
+    </section>
+
+    <p class="care">마음이 많이 힘들 때는 혼자 견디지 마세요.<br>자살예방 상담전화 <b>109</b> · 정신건강 위기상담 <b>1577-0199</b> (24시간)<br>시인의 우체통은 의료기기가 아니며 진단·치료를 대신하지 않습니다. 증상이 반복되면 전문의와 상담하세요.</p>
+    <p class="proto" hidden="">시연판입니다. 그림은 시에 집중할 수 있게 시마다 단순하게 그린 시인의 우체통 그림이에요. 입력한 정보는 어디에도 저장되지 않아요. <button class="linkish" id="introAgain" type="button">처음 안내 다시 보기</button></p>
+  </div>
+
+  <div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="introTitle">
+    <div class="intro-in">
+      <p class="intro-brand">시인의 우체통 · 잠시 나를 만나는 시간</p>
+      <div class="intro-dots" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
+      <h2 id="introTitle">시 한 번에 호흡 한 번</h2>
+      <p id="introText">매일 오후 3시, 시와 그림이 담긴 편지가 도착해요.</p>
+      <p class="intro-beta" id="introBeta">베타 기간에는 알림이 없어요.</p>
+      <div class="intro-actions">
+        <button type="button" class="intro-skip" id="introSkip">건너뛰기</button>
+        <button type="button" class="intro-next" id="introNext">다음</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="breathe-btn" id="breatheBtn" type="button" aria-haspopup="dialog">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+      <circle cx="12" cy="12" r="8"></circle>
+      <circle cx="12" cy="12" r="3"></circle>
+    </svg>
+    숨 고르기
+  </button>
+
+  <div class="sos" id="sos" role="dialog" aria-modal="true" aria-labelledby="sosSay" hidden="">
+    <div class="sos-in">
+      <div class="sos-top">
+        <span class="sos-step" id="sosStep"></span>
+        <button class="sos-close" id="sosClose" type="button">닫기</button>
+      </div>
+      <div class="sos-body" id="sosBody"></div>
+      <p class="sos-note">시인의 우체통은 의료기기가 아니며 진단·치료를 대신하지 않습니다.</p>
+    </div>
+  </div>
+
+  <nav class="tabs" aria-label="메뉴">
+    <div class="in">
+      <a href="#today" data-tab="today" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+          <rect x="3" y="6" width="18" height="13" rx="2"></rect>
+          <path d="M3.5 7l8.5 6 8.5-6"></path>
+        </svg>
+        오늘의 편지
+      </a>
+      <a href="#mood" data-tab="mood">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+          <path d="M12 3c-3 4-6 6.5-6 10a6 6 0 0 0 12 0c0-3.5-3-6-6-10z"></path>
+        </svg>
+        마음 고르기
+      </a>
+      <a href="#box" data-tab="box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+          <path d="M4 8h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"></path>
+          <path d="M3 4h18v4H3zM10 12h4"></path>
+        </svg>
+        보관함
+      </a>
+      <a href="#join" data-tab="join">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+          <rect x="7" y="3" width="10" height="14" rx="3"></rect>
+          <path d="M10 8h4M12 17v4"></path>
+        </svg>
+        편지 받기
+      </a>
+    </div>
+  </nav>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
