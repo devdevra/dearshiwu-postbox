@@ -3106,12 +3106,12 @@ body.tabs-away .breathe-btn {
 
 .postcard-flip-badge {
   position: absolute;
-  right: 12px;
-  bottom: 12px;
+  right: 60px;
+  bottom: 10px;
   z-index: 3;
-  padding: 5px 10px;
+  padding: 4px 9px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
   background: rgba(34, 24, 17, 0.72);
   color: #fbf3e6;
