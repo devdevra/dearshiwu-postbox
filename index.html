@@ -292,16 +292,17 @@
     <div class="postcard-dialog">
       <div class="postcard-head">
         <span id="postcardTitle">시 엽서 간직하기</span>
-        <div class="postcard-head-actions">
-          <button class="postcard-flip-btn" id="postcardFlip" type="button" aria-pressed="false">뒷면 보기</button>
-          <button class="postcard-close" id="postcardClose" type="button" aria-label="시 엽서 닫기">닫기</button>
-        </div>
+        <button class="postcard-close" id="postcardClose" type="button" aria-label="시 엽서 닫기">닫기</button>
       </div>
       <div class="postcard-styles" role="group" aria-label="엽서 종이 질감">
         <button type="button" class="pc-style-btn" data-pc-style="hanji" aria-pressed="true">따뜻한 한지</button>
         <button type="button" class="pc-style-btn" data-pc-style="linen" aria-pressed="false">햇살 린넨</button>
         <button type="button" class="pc-style-btn" data-pc-style="gallery" aria-pressed="false">여백 갤러리</button>
         <button type="button" class="pc-style-btn" data-pc-style="ink" aria-pressed="false">밤의 먹지</button>
+      </div>
+      <div class="postcard-side-switch" role="group" aria-label="엽서 앞면과 뒷면 전환">
+        <button type="button" class="pc-side-btn" id="postcardSideFront" data-pc-side="front" aria-pressed="true">앞면 · 시 엽서</button>
+        <button type="button" class="pc-side-btn" id="postcardSideBack" data-pc-side="back" aria-pressed="false">↻ 뒷면 보기</button>
       </div>
       <div class="postcard-stage" id="postcardStage">
         <div class="postcard-tilt" id="postcardTilt">
@@ -310,11 +311,13 @@
               <canvas id="postcardCanvas" class="postcard-canvas" aria-label="시와 그림이 담긴 시 엽서 앞면"></canvas>
               <span class="postcard-fiber-fx" aria-hidden="true"></span>
               <span class="postcard-sheen" aria-hidden="true"></span>
+              <span class="postcard-flip-badge" aria-hidden="true">↻ 눌러서 뒷면 보기</span>
             </div>
             <div class="postcard-face postcard-face--back">
               <canvas id="postcardBackCanvas" class="postcard-canvas" aria-label="마음의 한 줄과 우표가 담긴 시 엽서 뒷면"></canvas>
               <span class="postcard-fiber-fx" aria-hidden="true"></span>
               <span class="postcard-sheen" aria-hidden="true"></span>
+              <span class="postcard-flip-badge" aria-hidden="true">↻ 앞면으로 뒤집기</span>
             </div>
           </div>
         </div>

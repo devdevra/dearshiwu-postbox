@@ -230,7 +230,10 @@ function createCardTemplate(work, options = {}) {
         <div class="book-vertical-mark" aria-hidden="true">시인의 우체통 · 詩</div>
         <div class="card-top-row">
           <div class="day-tag js-day"></div>
-          <button class="align-btn js-align" type="button" aria-pressed="false">가운데 조판</button>
+          <div class="card-top-actions">
+            <button class="align-btn postcard-quick-btn js-postcard" type="button">✦ 시 엽서</button>
+            <button class="align-btn js-align" type="button" aria-pressed="false">가운데 조판</button>
+          </div>
         </div>
         <h2 class="poem-title js-title"></h2>
         <div class="byline js-by"></div>
@@ -253,7 +256,7 @@ function createCardTemplate(work, options = {}) {
         <div class="rights js-rights"></div>
         <div class="actions">
           <button class="btn js-save" type="button"></button>
-          <button class="btn js-postcard" type="button">시 엽서 간직하기</button>
+          <button class="btn js-postcard" type="button">✦ 시 엽서 보기 (앞·뒷면)</button>
           <a class="btn" href="#mood">다른 마음으로 받기</a>
           <button class="btn js-zen" type="button" aria-pressed="false">시만 조용히 보기</button>
           ${options.allowRefold ? `<button class="btn js-refold" type="button">봉투 다시 덮기</button>` : ""}
@@ -438,10 +441,9 @@ function mountLetterCard(container, work, options = {}) {
 
   updateSaveButton();
 
-  const postcardBtn = container.querySelector(".js-postcard");
-  if (postcardBtn) {
-    postcardBtn.addEventListener("click", () => openPostcardModal(work));
-  }
+  container.querySelectorAll(".js-postcard").forEach((btn) => {
+    btn.addEventListener("click", () => openPostcardModal(work));
+  });
 
   const zenBtn = container.querySelector(".js-zen");
   if (zenBtn) {
@@ -1426,7 +1428,8 @@ const postcardModal = document.getElementById("postcardModal");
 const postcardCanvasEl = document.getElementById("postcardCanvas");
 const postcardBackCanvasEl = document.getElementById("postcardBackCanvas");
 const postcardCloseBtn = document.getElementById("postcardClose");
-const postcardFlipBtn = document.getElementById("postcardFlip");
+const postcardSideFrontBtn = document.getElementById("postcardSideFront");
+const postcardSideBackBtn = document.getElementById("postcardSideBack");
 const postcardStageEl = document.getElementById("postcardStage");
 const postcardTiltEl = document.getElementById("postcardTilt");
 const postcardFlipperEl = document.getElementById("postcardFlipper");
@@ -1440,7 +1443,7 @@ let activePostcardStyle = "hanji";
 let activePostcardDateLabel = "";
 let isPostcardFlipped = false;
 let tiltRafId = 0;
-let swapTimerId = 0;
+let motionTimerId = 0;
 let targetTiltX = 0;
 let targetTiltY = 0;
 let curTiltX = 0;
@@ -1449,6 +1452,15 @@ let targetSheenX = 30;
 let targetSheenY = 25;
 let curSheenX = 30;
 let curSheenY = 25;
+
+function playPostcardTiltMotion(className, durationMs) {
+  if (!postcardTiltEl || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  postcardTiltEl.classList.remove("is-swapping", "is-entering");
+  void postcardTiltEl.offsetWidth;
+  postcardTiltEl.classList.add(className);
+  clearTimeout(motionTimerId);
+  motionTimerId = setTimeout(() => postcardTiltEl.classList.remove(className), durationMs);
+}
 
 function resetPostcardTilt(immediate = false) {
   targetTiltX = 0;
@@ -1552,27 +1564,26 @@ function syncPostcardStyleButtons() {
 
 function syncPostcardFlipUI() {
   if (postcardFlipperEl) postcardFlipperEl.classList.toggle("is-flipped", isPostcardFlipped);
-  if (postcardFlipBtn) {
-    postcardFlipBtn.setAttribute("aria-pressed", isPostcardFlipped ? "true" : "false");
-    postcardFlipBtn.textContent = isPostcardFlipped ? "앞면 보기" : "뒷면 보기";
-  }
+  if (postcardSideFrontBtn) postcardSideFrontBtn.setAttribute("aria-pressed", isPostcardFlipped ? "false" : "true");
+  if (postcardSideBackBtn) postcardSideBackBtn.setAttribute("aria-pressed", isPostcardFlipped ? "true" : "false");
   if (postcardDownloadBtn) {
     postcardDownloadBtn.textContent = isPostcardFlipped ? "뒷면 간직하기 (PNG)" : "앞면 간직하기 (PNG)";
   }
 }
 
-function togglePostcardFlip() {
-  isPostcardFlipped = !isPostcardFlipped;
+function setPostcardFlipped(flipped) {
+  isPostcardFlipped = Boolean(flipped);
   syncPostcardFlipUI();
 }
 
-if (postcardFlipBtn) postcardFlipBtn.addEventListener("click", togglePostcardFlip);
+if (postcardSideFrontBtn) postcardSideFrontBtn.addEventListener("click", () => setPostcardFlipped(false));
+if (postcardSideBackBtn) postcardSideBackBtn.addEventListener("click", () => setPostcardFlipped(true));
 if (postcardFlipperEl) {
-  postcardFlipperEl.addEventListener("click", togglePostcardFlip);
+  postcardFlipperEl.addEventListener("click", () => setPostcardFlipped(!isPostcardFlipped));
   postcardFlipperEl.addEventListener("keydown", (e) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      togglePostcardFlip();
+      setPostcardFlipped(!isPostcardFlipped);
     }
   });
 }
@@ -1581,13 +1592,7 @@ postcardStyleBtns.forEach((btn) => {
   btn.addEventListener("click", () => {
     activePostcardStyle = btn.dataset.pcStyle || "hanji";
     syncPostcardStyleButtons();
-    if (postcardTiltEl && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      postcardTiltEl.classList.remove("is-swapping");
-      void postcardTiltEl.offsetWidth;
-      postcardTiltEl.classList.add("is-swapping");
-      clearTimeout(swapTimerId);
-      swapTimerId = setTimeout(() => postcardTiltEl.classList.remove("is-swapping"), 400);
-    }
+    playPostcardTiltMotion("is-swapping", 400);
     drawActivePostcard();
   });
 });
@@ -1614,11 +1619,14 @@ function openPostcardModal(work) {
   postcardModal.hidden = false;
   document.body.style.overflow = "hidden";
   drawActivePostcard();
+  playPostcardTiltMotion("is-entering", 900);
   if (postcardCloseBtn) postcardCloseBtn.focus({ preventScroll: true });
 }
 
 function closePostcardModal() {
   if (!postcardModal || postcardModal.hidden) return;
+  clearTimeout(motionTimerId);
+  if (postcardTiltEl) postcardTiltEl.classList.remove("is-swapping", "is-entering");
   resetPostcardTilt(true);
   postcardModal.hidden = true;
   document.body.style.overflow = "";
