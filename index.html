@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="매일 오후 3시, 시와 그림이 담긴 편지가 도착해요. 시 한 번에 호흡 한 번, 잠시 나를 만나는 시간.">
-  <meta name="theme-color" content="#0c1424">
+  <meta name="theme-color" content="#11151c">
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <link rel="canonical" href="https://dearshiwu.com/">
   <meta property="og:type" content="website">
@@ -61,6 +61,7 @@
             <span class="postmark-ring">DEAR SHIWU<br>PM 3:00</span>
           </span>
           <span class="env-stamp" aria-hidden="true">
+            <span class="stamp-art" id="envStampArt"></span>
             <span class="stamp-inner">詩 · 3PM</span>
           </span>
           <span class="flap" aria-hidden="true"></span>
@@ -127,42 +128,60 @@
         <span class="w-to">눌러서 펼쳐 보세요</span>
       </button>
       <div class="why3" id="why3">
-        <svg class="why3-art" viewBox="0 0 640 400" role="img" aria-label="오후 햇살 아래 언덕 위 빨간 우체통과 그 곁에 앉은 여우">
-          <defs>
-            <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stop-color="#cfd8e3"></stop>
-              <stop offset="1" stop-color="#efe3cf"></stop>
-            </linearGradient>
-          </defs>
-          <rect width="640" height="400" fill="url(#sky)"></rect>
-          <circle cx="470" cy="118" r="34" fill="#f4d9a4"></circle>
-          <circle cx="470" cy="118" r="54" fill="#f4d9a4" opacity=".25"></circle>
-          <path d="M168 92q8-7 16 0q8-7 16 0" fill="none" stroke="#5b6577" stroke-width="2.4" stroke-linecap="round"></path>
-          <path d="M0 236C70 206 130 214 190 228S300 196 370 210 500 238 640 212V400H0Z" fill="#b9c3cf"></path>
-          <path d="M0 280C90 252 170 262 250 276S400 250 470 262 580 284 640 270V400H0Z" fill="#97a8b5"></path>
-          <path d="M0 330C110 300 230 296 330 300S520 318 640 304V400H0Z" fill="#6f8790"></path>
-          <g transform="translate(232 196)">
-            <ellipse cx="34" cy="112" rx="46" ry="7" fill="#4f6670" opacity=".55"></ellipse>
-            <rect x="28" y="70" width="12" height="42" fill="#7a2a21"></rect>
-            <rect x="6" y="12" width="56" height="64" rx="8" fill="#d2402f"></rect>
-            <path d="M2 16Q34 -6 66 16Z" fill="#a52e21"></path>
-            <rect x="16" y="30" width="36" height="6" rx="3" fill="#7a2a21"></rect>
-            <g transform="translate(20 6) rotate(-10)">
-              <rect x="0" y="0" width="30" height="20" rx="2" fill="#fbf6ec"></rect>
-              <path d="M0 0L15 11L30 0" fill="none" stroke="#c9b99c" stroke-width="1.6"></path>
+        <div class="why3-art-mount">
+          <svg class="why3-art" viewBox="0 0 640 400" role="img" aria-label="오후 햇살 아래 언덕 위 빨간 우체통과 그 곁에 앉은 여우">
+            <defs>
+              <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#d4dce3"></stop>
+                <stop offset="0.52" stop-color="#ece1cf"></stop>
+                <stop offset="1" stop-color="#f2dec0"></stop>
+              </linearGradient>
+              <radialGradient id="sunGlow" cx="73%" cy="29%" r="42%">
+                <stop offset="0" stop-color="#fff4d6" stop-opacity="0.95"></stop>
+                <stop offset="0.35" stop-color="#f5d298" stop-opacity="0.45"></stop>
+                <stop offset="1" stop-color="#f5d298" stop-opacity="0"></stop>
+              </radialGradient>
+              <filter id="wcSoft" x="-5%" y="-5%" width="110%" height="110%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.025" numOctaves="3" result="noise"></feTurbulence>
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G"></feDisplacementMap>
+              </filter>
+            </defs>
+            <rect width="640" height="400" fill="url(#sky)"></rect>
+            <rect width="640" height="400" fill="url(#sunGlow)"></rect>
+            <circle cx="470" cy="116" r="32" fill="#fbf0d2" opacity="0.92"></circle>
+            <g filter="url(#wcSoft)">
+              <path d="M0 240C90 210 175 218 250 232S390 202 470 218 575 236 640 214V400H0Z" fill="#b7c2cb" opacity="0.78"></path>
+              <path d="M0 282C100 256 185 266 270 278S420 252 500 264 590 282 640 270V400H0Z" fill="#8f9fa5" opacity="0.86"></path>
+              <path d="M0 326C120 296 240 294 345 300S530 318 640 302V400H0Z" fill="#63797d"></path>
+              <path d="M0 356C140 338 280 342 420 350S570 358 640 348V400H0Z" fill="#4f6468" opacity="0.55"></path>
             </g>
-          </g>
-          <g transform="translate(330 248)">
-            <path d="M44 58C66 60 84 50 86 34C88 22 80 16 74 22C78 34 70 46 46 48Z" fill="#c9773f"></path>
-            <path d="M74 22C80 16 88 22 86 34C82 30 78 26 74 22Z" fill="#f6ecdd"></path>
-            <path d="M26 60C10 60 4 46 8 32C11 22 18 16 28 16C38 16 46 22 48 34C50 48 42 60 26 60Z" fill="#d9874a"></path>
-            <path d="M14 20C14 8 22 0 30 0C38 0 44 8 42 20C38 26 18 26 14 20Z" fill="#d9874a"></path>
-            <path d="M16 10L12 -12L26 2Z" fill="#d9874a"></path>
-            <path d="M32 2L40 -12L42 10Z" fill="#d9874a"></path>
-            <path d="M14 -6L12 -12L17 -7Z" fill="#5a3a2a"></path>
-            <path d="M38 -7L40 -12L40.5 -5Z" fill="#5a3a2a"></path>
-          </g>
-        </svg>
+            <path d="M158 96q9-7 18 0q9-7 18 0" fill="none" stroke="#6d7682" stroke-width="1.8" stroke-linecap="round" opacity="0.75"></path>
+            <path d="M196 112q6-5 12 0q6-5 12 0" fill="none" stroke="#6d7682" stroke-width="1.4" stroke-linecap="round" opacity="0.55"></path>
+            <g transform="translate(232 194)" filter="url(#wcSoft)">
+              <ellipse cx="34" cy="113" rx="48" ry="6.5" fill="#3a4c52" opacity="0.45"></ellipse>
+              <rect x="28" y="70" width="12" height="43" fill="#702820"></rect>
+              <rect x="6" y="14" width="56" height="62" rx="8" fill="#b84435"></rect>
+              <rect x="8" y="16" width="16" height="58" rx="4" fill="#c95647" opacity="0.32"></rect>
+              <path d="M2 17Q34 -5 66 17Z" fill="#8c2e22"></path>
+              <rect x="16" y="31" width="36" height="5.5" rx="2.7" fill="#5e211a"></rect>
+              <g transform="translate(21 6) rotate(-10)">
+                <rect x="0" y="0" width="29" height="19" rx="2" fill="#fbf6ec"></rect>
+                <path d="M0 0L14.5 10.5L29 0" fill="none" stroke="#c5b498" stroke-width="1.5"></path>
+              </g>
+            </g>
+            <g transform="translate(330 246)" filter="url(#wcSoft)">
+              <ellipse cx="36" cy="60" rx="44" ry="5.5" fill="#3a4c52" opacity="0.38"></ellipse>
+              <path d="M44 58C66 60 85 50 87 34C89 22 80 16 74 22C78 34 70 46 46 48Z" fill="#bd6f3a"></path>
+              <path d="M74 22C80 16 88 22 86 34C82 30 78 26 74 22Z" fill="#f7efe0"></path>
+              <path d="M26 60C10 60 4 46 8 32C11 22 18 16 28 16C38 16 46 22 48 34C50 48 42 60 26 60Z" fill="#cf7f46"></path>
+              <path d="M14 20C14 8 22 0 30 0C38 0 44 8 42 20C38 26 18 26 14 20Z" fill="#cf7f46"></path>
+              <path d="M16 10L12 -12L26 2Z" fill="#cf7f46"></path>
+              <path d="M32 2L40 -12L42 10Z" fill="#cf7f46"></path>
+              <path d="M14 -6L12 -12L17 -7Z" fill="#543526"></path>
+              <path d="M38 -7L40 -12L40.5 -5Z" fill="#543526"></path>
+            </g>
+          </svg>
+        </div>
         <p class="why3-dear">Dear Shiwu,</p>
         <p>시인의 우체통은 세상에 놓인 작은 우체통이에요.<br>시인이 세상에 보내는 편지이자,<br>읽는 사람이 자기 삶을 잠시<br>바라볼 수 있도록 건네는 작은 선물이에요.</p>
         <h2>왜 오후 세 시일까요?</h2>
@@ -251,6 +270,11 @@
       <div class="postcard-head">
         <span id="postcardTitle">시 엽서 간직하기</span>
         <button class="postcard-close" id="postcardClose" type="button" aria-label="시 엽서 닫기">닫기</button>
+      </div>
+      <div class="postcard-styles" role="group" aria-label="엽서 종이 스타일">
+        <button type="button" class="pc-style-btn" data-pc-style="hanji" aria-pressed="true">클래식 한지</button>
+        <button type="button" class="pc-style-btn" data-pc-style="ink" aria-pressed="false">밤의 잉크</button>
+        <button type="button" class="pc-style-btn" data-pc-style="gallery" aria-pressed="false">여백 갤러리</button>
       </div>
       <div class="postcard-preview-wrap">
         <canvas id="postcardCanvas" class="postcard-canvas" aria-label="시와 그림이 담긴 시 엽서 이미지"></canvas>

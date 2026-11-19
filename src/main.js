@@ -8,7 +8,13 @@ import {
   LEXICON_WORDS,
   DICTIONARY_ENTRIES
 } from "./data/emotions.js";
-import { renderArtworkCanvas, renderPostcardCanvas, SCENE_CAPTIONS } from "./components/canvasArt.js";
+import {
+  renderArtworkCanvas,
+  renderPostcardCanvas,
+  getArtworkUrl,
+  getArtworkCaption,
+  loadArtworkImage
+} from "./components/canvasArt.js";
 
 const STORAGE_SAVED_KEY = "siu-postbox-saved";
 const STORAGE_INTRO_KEY = "siu-postbox-intro-seen";
@@ -206,15 +212,21 @@ function exitZenMode() {
 }
 
 function createCardTemplate(work, options = {}) {
+  const artSrc = work.photo || getArtworkUrl(work);
+  const artAlt = work.artwork || getArtworkCaption(work) || `${work.title} 시화`;
   return `<article class="card" data-id="${work.id}">
-    ${
-      work.photo
-        ? `<img class="art art-photo" src="${work.photo}" alt="${work.artwork || "이시우 시인의 시엽서 그림"}">`
-        : `<canvas class="art" role="img" aria-label="시에 어울리는 단순한 그림"></canvas>`
-    }
-    <p class="art-cap js-artcap"></p>
+    <div class="book-spine" aria-hidden="true"></div>
+    <button class="book-ribbon js-ribbon" type="button" aria-label="책갈피로 보관하기" aria-pressed="false" title="책갈피로 보관하기"></button>
+    <div class="art-mount">
+      <div class="art-frame">
+        <img class="art-img ${work.photo ? "art-photo" : ""}" src="${artSrc}" alt="${artAlt}">
+        <canvas class="art" role="img" aria-label="시에 어울리는 그림" hidden=""></canvas>
+      </div>
+      <p class="art-cap js-artcap"></p>
+    </div>
     <div class="card-body">
       <div class="card-inner-frame">
+        <div class="book-vertical-mark" aria-hidden="true">시인의 우체통 · 詩</div>
         <div class="card-top-row">
           <div class="day-tag js-day"></div>
           <button class="align-btn js-align" type="button" aria-pressed="false">가운데 조판</button>
@@ -245,6 +257,7 @@ function createCardTemplate(work, options = {}) {
           <button class="btn js-zen" type="button" aria-pressed="false">시만 조용히 보기</button>
           ${options.allowRefold ? `<button class="btn js-refold" type="button">봉투 다시 덮기</button>` : ""}
         </div>
+        <div class="book-folio js-folio" aria-hidden="true"></div>
       </div>
     </div>
   </article>`;
@@ -308,10 +321,22 @@ function mountLetterCard(container, work, options = {}) {
   container.innerHTML = createCardTemplate(work, options);
   const select = (sel) => container.querySelector(sel);
 
-  select(".js-artcap").textContent = SCENE_CAPTIONS[work.art] || "";
+  select(".js-artcap").textContent = getArtworkCaption(work);
   select(".js-day").textContent = `${work.day}일째 편지 · ${formatKoreanDate(getDateForDay(work.day))}`;
   select(".js-title").textContent = work.title;
   select(".js-by").textContent = formatBylineText(work);
+  const folioEl = select(".js-folio");
+  if (folioEl) folioEl.textContent = `— ${String(work.day).padStart(2, "0")} —`;
+
+  const artImg = select(".art-img");
+  const fallbackCanvas = select("canvas.art");
+  if (artImg && fallbackCanvas) {
+    artImg.addEventListener("error", () => {
+      artImg.hidden = true;
+      fallbackCanvas.hidden = false;
+      requestAnimationFrame(() => renderArtworkCanvas(fallbackCanvas, work));
+    });
+  }
 
   const poemParagraph = select(".poem");
   const hintEl = select(".js-poem-hint");
@@ -380,20 +405,23 @@ function mountLetterCard(container, work, options = {}) {
     });
   }
 
-  const canvas = container.querySelector("canvas");
-  if (canvas) {
-    requestAnimationFrame(() => renderArtworkCanvas(canvas, work));
-  }
-
   const saveBtn = container.querySelector(".js-save");
+  const ribbonBtn = container.querySelector(".js-ribbon");
   const updateSaveButton = () => {
     const saved = isPoemSaved(work.id);
-    saveBtn.textContent = saved ? "보관했어요" : "보관하기";
-    saveBtn.classList.toggle("saved", saved);
-    saveBtn.setAttribute("aria-pressed", saved ? "true" : "false");
+    if (saveBtn) {
+      saveBtn.textContent = saved ? "보관했어요" : "보관하기";
+      saveBtn.classList.toggle("saved", saved);
+      saveBtn.setAttribute("aria-pressed", saved ? "true" : "false");
+    }
+    if (ribbonBtn) {
+      ribbonBtn.classList.toggle("saved", saved);
+      ribbonBtn.setAttribute("aria-pressed", saved ? "true" : "false");
+      ribbonBtn.setAttribute("aria-label", saved ? "책갈피 보관 해제하기" : "책갈피로 보관하기");
+    }
   };
 
-  saveBtn.addEventListener("click", () => {
+  const toggleSaveHandler = () => {
     if (isPoemSaved(work.id)) {
       savedItems = savedItems.filter((item) => item.id !== work.id);
     } else {
@@ -402,7 +430,10 @@ function mountLetterCard(container, work, options = {}) {
     saveItemsToStorage();
     updateSaveButton();
     renderSavedArchive(false);
-  });
+  };
+
+  if (saveBtn) saveBtn.addEventListener("click", toggleSaveHandler);
+  if (ribbonBtn) ribbonBtn.addEventListener("click", toggleSaveHandler);
 
   updateSaveButton();
 
@@ -1095,11 +1126,16 @@ function renderPastLettersList() {
 
 function selectDayToView(dayNumber) {
   activeDayIndex = Math.min(WORKS.length, Math.max(1, dayNumber));
+  const currentWork = getPoemByDay(activeDayIndex);
   dayLabelEl.textContent = `${activeDayIndex}일째 · ${formatKoreanDate(getDateForDay(activeDayIndex))}`;
   document.getElementById("dayPrev").disabled = activeDayIndex <= 1;
   document.getElementById("dayNext").disabled = activeDayIndex >= WORKS.length;
+  const stampArtEl = document.getElementById("envStampArt");
+  if (stampArtEl) {
+    stampArtEl.style.backgroundImage = `url('${getArtworkUrl(currentWork)}')`;
+  }
   if (mailWrapper.classList.contains("open")) {
-    mountLetterCard(document.getElementById("todayCard"), getPoemByDay(activeDayIndex), { allowRefold: true });
+    mountLetterCard(document.getElementById("todayCard"), currentWork, { allowRefold: true });
     window.scrollTo({
       top: 0,
       behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"
@@ -1381,8 +1417,42 @@ const postcardCanvasEl = document.getElementById("postcardCanvas");
 const postcardCloseBtn = document.getElementById("postcardClose");
 const postcardDownloadBtn = document.getElementById("postcardDownload");
 const postcardCopyBtn = document.getElementById("postcardCopy");
+const postcardStyleBtns = document.querySelectorAll(".pc-style-btn");
 let activePostcardWork = null;
 let activePostcardQuote = "";
+let activePostcardStyle = "hanji";
+let activePostcardDateLabel = "";
+
+function drawActivePostcard() {
+  if (!postcardCanvasEl || !activePostcardWork) return;
+  const workSnapshot = activePostcardWork;
+  const artSrc = workSnapshot.photo || getArtworkUrl(workSnapshot);
+  renderPostcardCanvas(postcardCanvasEl, workSnapshot, activePostcardQuote, activePostcardDateLabel, {
+    style: activePostcardStyle
+  });
+  loadArtworkImage(artSrc).then((img) => {
+    if (img && activePostcardWork === workSnapshot && postcardModal && !postcardModal.hidden) {
+      renderPostcardCanvas(postcardCanvasEl, workSnapshot, activePostcardQuote, activePostcardDateLabel, {
+        style: activePostcardStyle,
+        image: img
+      });
+    }
+  });
+}
+
+function syncPostcardStyleButtons() {
+  postcardStyleBtns.forEach((btn) => {
+    btn.setAttribute("aria-pressed", btn.dataset.pcStyle === activePostcardStyle ? "true" : "false");
+  });
+}
+
+postcardStyleBtns.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    activePostcardStyle = btn.dataset.pcStyle || "hanji";
+    syncPostcardStyleButtons();
+    drawActivePostcard();
+  });
+});
 
 function openPostcardModal(work) {
   if (!postcardModal || !postcardCanvasEl || !work) return;
@@ -1392,12 +1462,13 @@ function openPostcardModal(work) {
     .map((idx) => (work.lines && work.lines[idx] ? work.lines[idx].trim() : ""))
     .filter(Boolean);
   activePostcardQuote = selectedLines.slice(0, 4).join("\n");
-  const dateLabel = `${work.day}일째 · ${formatKoreanDate(getDateForDay(work.day))}`;
+  activePostcardDateLabel = `${work.day}일째 · ${formatKoreanDate(getDateForDay(work.day))}`;
 
-  renderPostcardCanvas(postcardCanvasEl, work, activePostcardQuote, dateLabel);
+  syncPostcardStyleButtons();
   if (postcardCopyBtn) postcardCopyBtn.textContent = "시 구절 복사하기";
   postcardModal.hidden = false;
   document.body.style.overflow = "hidden";
+  drawActivePostcard();
   if (postcardCloseBtn) postcardCloseBtn.focus({ preventScroll: true });
 }
 
@@ -1564,23 +1635,30 @@ const THEMES = [
   {
     key: "night",
     short: "밤",
-    label: "밤의 고요",
-    metaColor: "#0c1424",
+    label: "서재의 밤",
+    metaColor: "#11151c",
     iconPath: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>'
   },
   {
-    key: "dawn",
-    short: "새벽",
-    label: "새벽 안개",
-    metaColor: "#121d2b",
-    iconPath: '<path d="M17 18a5 5 0 0 0-10 0"></path><line x1="12" y1="9" x2="12" y2="2"></line><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"></line><line x1="1" y1="18" x2="3" y2="18"></line><line x1="21" y1="18" x2="23" y2="18"></line><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"></line><line x1="23" y1="22" x2="1" y2="22"></line>'
+    key: "paper",
+    short: "낮",
+    label: "한지의 오후",
+    metaColor: "#ebe4d6",
+    iconPath: '<circle cx="12" cy="12" r="4.5"></circle><line x1="12" y1="2" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.05" y2="7.05"></line><line x1="16.95" y1="16.95" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.05" y2="16.95"></line><line x1="16.95" y1="7.05" x2="19.07" y2="4.93"></line>'
   },
   {
-    key: "afternoon",
-    short: "오후",
-    label: "오후 세 시",
-    metaColor: "#1f1b24",
-    iconPath: '<circle cx="12" cy="12" r="4.5"></circle><line x1="12" y1="2" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.05" y2="7.05"></line><line x1="16.95" y1="16.95" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.05" y2="16.95"></line><line x1="16.95" y1="7.05" x2="19.07" y2="4.93"></line>'
+    key: "forest",
+    short: "숲",
+    label: "이끼 낀 숲",
+    metaColor: "#121d19",
+    iconPath: '<path d="M12 2L6.5 11h11L12 2z"></path><path d="M12 8.5L5 18h14L12 8.5z"></path><line x1="12" y1="18" x2="12" y2="22"></line>'
+  },
+  {
+    key: "dusk",
+    short: "노을",
+    label: "노을 세 시",
+    metaColor: "#21191d",
+    iconPath: '<path d="M17 18a5 5 0 0 0-10 0"></path><line x1="12" y1="9" x2="12" y2="2"></line><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"></line><line x1="1" y1="18" x2="3" y2="18"></line><line x1="21" y1="18" x2="23" y2="18"></line><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"></line><line x1="23" y1="22" x2="1" y2="22"></line>'
   }
 ];
 
@@ -1589,11 +1667,14 @@ let currentThemeIdx = 0;
 
 function applyThemeSetting(idx) {
   const theme = THEMES[idx] || THEMES[0];
+  document.documentElement.classList.add("theme-switching");
   if (theme.key === "night") {
     document.documentElement.removeAttribute("data-theme");
   } else {
     document.documentElement.dataset.theme = theme.key;
   }
+  void document.documentElement.offsetHeight;
+  document.documentElement.classList.remove("theme-switching");
   const metaTheme = document.querySelector('meta[name="theme-color"]');
   if (metaTheme) metaTheme.setAttribute("content", theme.metaColor);
   if (themeBtn) {
@@ -1834,7 +1915,7 @@ function handleRouteChange() {
     currentView === "today" && mailWrapper.classList.contains("open")
   );
   document.body.classList.remove("tabs-away");
-  document.querySelectorAll("section[data-view]:not([hidden]) canvas.art").forEach((canvas) => {
+  document.querySelectorAll("section[data-view]:not([hidden]) canvas.art:not([hidden])").forEach((canvas) => {
     const cardId = canvas.closest(".card")?.dataset.id;
     const work = WORKS.find((x) => x.id === cardId);
     if (work) renderArtworkCanvas(canvas, work);
@@ -1848,7 +1929,7 @@ let resizeTimer;
 window.addEventListener("resize", () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => {
-    document.querySelectorAll("section[data-view]:not([hidden]) canvas.art").forEach((canvas) => {
+    document.querySelectorAll("section[data-view]:not([hidden]) canvas.art:not([hidden])").forEach((canvas) => {
       const cardId = canvas.closest(".card")?.dataset.id;
       const work = WORKS.find((x) => x.id === cardId);
       if (work) renderArtworkCanvas(canvas, work);
