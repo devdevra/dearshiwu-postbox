@@ -11,6 +11,7 @@ import {
 import {
   renderArtworkCanvas,
   renderPostcardCanvas,
+  renderPostcardBackCanvas,
   getArtworkUrl,
   getArtworkCaption,
   loadArtworkImage
@@ -22,7 +23,7 @@ const STORAGE_SIZE_KEY = "siu-postbox-big";
 const STORAGE_UNDERLINES_KEY = "siu-postbox-underlines";
 const STORAGE_REFLECTIONS_KEY = "siu-postbox-reflections";
 const STORAGE_ALIGN_KEY = "siu-postbox-align";
-const STORAGE_THEME_KEY = "siu-postbox-theme";
+const STORAGE_THEME_KEY = "siu-postbox-theme-v2";
 
 const WORKS = DAILY_POEMS.map((item, idx) => ({
   ...item,
@@ -504,7 +505,7 @@ document.getElementById("envelope").addEventListener("click", () => {
   }
   isEnvelopeAnimating = true;
   mailWrapper.classList.add("opening");
-  setTimeout(finishOpen, 280);
+  setTimeout(finishOpen, 520);
 });
 
 let lastScrollY = 0;
@@ -1130,9 +1131,18 @@ function selectDayToView(dayNumber) {
   dayLabelEl.textContent = `${activeDayIndex}일째 · ${formatKoreanDate(getDateForDay(activeDayIndex))}`;
   document.getElementById("dayPrev").disabled = activeDayIndex <= 1;
   document.getElementById("dayNext").disabled = activeDayIndex >= WORKS.length;
+  const artUrl = getArtworkUrl(currentWork);
   const stampArtEl = document.getElementById("envStampArt");
   if (stampArtEl) {
-    stampArtEl.style.backgroundImage = `url('${getArtworkUrl(currentWork)}')`;
+    stampArtEl.style.backgroundImage = `url('${artUrl}')`;
+  }
+  const peekArtEl = document.getElementById("envPeekArt");
+  if (peekArtEl) {
+    peekArtEl.style.backgroundImage = `url('${artUrl}')`;
+  }
+  const peekTitleEl = document.getElementById("envPeekTitle");
+  if (peekTitleEl) {
+    peekTitleEl.textContent = currentWork.title;
   }
   if (mailWrapper.classList.contains("open")) {
     mountLetterCard(document.getElementById("todayCard"), currentWork, { allowRefold: true });
@@ -1414,28 +1424,122 @@ function closeSosDialog() {
 
 const postcardModal = document.getElementById("postcardModal");
 const postcardCanvasEl = document.getElementById("postcardCanvas");
+const postcardBackCanvasEl = document.getElementById("postcardBackCanvas");
 const postcardCloseBtn = document.getElementById("postcardClose");
+const postcardFlipBtn = document.getElementById("postcardFlip");
+const postcardStageEl = document.getElementById("postcardStage");
+const postcardTiltEl = document.getElementById("postcardTilt");
+const postcardFlipperEl = document.getElementById("postcardFlipper");
 const postcardDownloadBtn = document.getElementById("postcardDownload");
 const postcardCopyBtn = document.getElementById("postcardCopy");
 const postcardStyleBtns = document.querySelectorAll(".pc-style-btn");
 let activePostcardWork = null;
 let activePostcardQuote = "";
+let activePostcardNote = "";
 let activePostcardStyle = "hanji";
 let activePostcardDateLabel = "";
+let isPostcardFlipped = false;
+let tiltRafId = 0;
+let swapTimerId = 0;
+let targetTiltX = 0;
+let targetTiltY = 0;
+let curTiltX = 0;
+let curTiltY = 0;
+let targetSheenX = 30;
+let targetSheenY = 25;
+let curSheenX = 30;
+let curSheenY = 25;
+
+function resetPostcardTilt(immediate = false) {
+  targetTiltX = 0;
+  targetTiltY = 0;
+  targetSheenX = 30;
+  targetSheenY = 25;
+  if (immediate && postcardTiltEl) {
+    if (tiltRafId) {
+      cancelAnimationFrame(tiltRafId);
+      tiltRafId = 0;
+    }
+    curTiltX = 0;
+    curTiltY = 0;
+    curSheenX = 30;
+    curSheenY = 25;
+    postcardTiltEl.style.setProperty("--tilt-x", "0deg");
+    postcardTiltEl.style.setProperty("--tilt-y", "0deg");
+    postcardTiltEl.style.setProperty("--shadow-x", "0px");
+    postcardTiltEl.style.setProperty("--shadow-y", "24px");
+    postcardTiltEl.style.setProperty("--sheen-x", "30%");
+    postcardTiltEl.style.setProperty("--sheen-y", "25%");
+  } else if (!tiltRafId && postcardTiltEl) {
+    tiltRafId = requestAnimationFrame(stepPostcardTilt);
+  }
+}
+
+function stepPostcardTilt() {
+  if (!postcardTiltEl) {
+    tiltRafId = 0;
+    return;
+  }
+  curTiltX += (targetTiltX - curTiltX) * 0.16;
+  curTiltY += (targetTiltY - curTiltY) * 0.16;
+  curSheenX += (targetSheenX - curSheenX) * 0.16;
+  curSheenY += (targetSheenY - curSheenY) * 0.16;
+
+  postcardTiltEl.style.setProperty("--tilt-x", `${curTiltX.toFixed(2)}deg`);
+  postcardTiltEl.style.setProperty("--tilt-y", `${curTiltY.toFixed(2)}deg`);
+  postcardTiltEl.style.setProperty("--shadow-x", `${(-curTiltY * 1.6).toFixed(1)}px`);
+  postcardTiltEl.style.setProperty("--shadow-y", `${(24 + curTiltX * 1.4).toFixed(1)}px`);
+  postcardTiltEl.style.setProperty("--sheen-x", `${curSheenX.toFixed(1)}%`);
+  postcardTiltEl.style.setProperty("--sheen-y", `${curSheenY.toFixed(1)}%`);
+
+  const stillMoving =
+    Math.abs(targetTiltX - curTiltX) > 0.04 ||
+    Math.abs(targetTiltY - curTiltY) > 0.04 ||
+    Math.abs(targetSheenX - curSheenX) > 0.1 ||
+    Math.abs(targetSheenY - curSheenY) > 0.1;
+  if (stillMoving) {
+    tiltRafId = requestAnimationFrame(stepPostcardTilt);
+  } else {
+    tiltRafId = 0;
+  }
+}
+
+if (postcardStageEl && postcardTiltEl) {
+  postcardStageEl.addEventListener("pointermove", (e) => {
+    if (e.pointerType === "touch" || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const rect = postcardStageEl.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const normX = Math.max(-1, Math.min(1, ((e.clientX - rect.left) / rect.width) * 2 - 1));
+    const normY = Math.max(-1, Math.min(1, ((e.clientY - rect.top) / rect.height) * 2 - 1));
+    targetTiltY = normX * 9.5;
+    targetTiltX = -normY * 7.5;
+    targetSheenX = 50 + normX * 36;
+    targetSheenY = 50 + normY * 36;
+    if (!tiltRafId) tiltRafId = requestAnimationFrame(stepPostcardTilt);
+  });
+  postcardStageEl.addEventListener("pointerleave", () => resetPostcardTilt(false));
+}
 
 function drawActivePostcard() {
   if (!postcardCanvasEl || !activePostcardWork) return;
   const workSnapshot = activePostcardWork;
   const artSrc = workSnapshot.photo || getArtworkUrl(workSnapshot);
-  renderPostcardCanvas(postcardCanvasEl, workSnapshot, activePostcardQuote, activePostcardDateLabel, {
-    style: activePostcardStyle
-  });
-  loadArtworkImage(artSrc).then((img) => {
-    if (img && activePostcardWork === workSnapshot && postcardModal && !postcardModal.hidden) {
-      renderPostcardCanvas(postcardCanvasEl, workSnapshot, activePostcardQuote, activePostcardDateLabel, {
+  const drawBothFaces = (img) => {
+    renderPostcardCanvas(postcardCanvasEl, workSnapshot, activePostcardQuote, activePostcardDateLabel, {
+      style: activePostcardStyle,
+      image: img
+    });
+    if (postcardBackCanvasEl) {
+      renderPostcardBackCanvas(postcardBackCanvasEl, workSnapshot, activePostcardNote, activePostcardDateLabel, {
         style: activePostcardStyle,
         image: img
       });
+    }
+  };
+  drawBothFaces(null);
+  loadArtworkImage(artSrc).then((img) => {
+    if (img && activePostcardWork === workSnapshot && postcardModal && !postcardModal.hidden) {
+      drawBothFaces(img);
     }
   });
 }
@@ -1446,10 +1550,44 @@ function syncPostcardStyleButtons() {
   });
 }
 
+function syncPostcardFlipUI() {
+  if (postcardFlipperEl) postcardFlipperEl.classList.toggle("is-flipped", isPostcardFlipped);
+  if (postcardFlipBtn) {
+    postcardFlipBtn.setAttribute("aria-pressed", isPostcardFlipped ? "true" : "false");
+    postcardFlipBtn.textContent = isPostcardFlipped ? "앞면 보기" : "뒷면 보기";
+  }
+  if (postcardDownloadBtn) {
+    postcardDownloadBtn.textContent = isPostcardFlipped ? "뒷면 간직하기 (PNG)" : "앞면 간직하기 (PNG)";
+  }
+}
+
+function togglePostcardFlip() {
+  isPostcardFlipped = !isPostcardFlipped;
+  syncPostcardFlipUI();
+}
+
+if (postcardFlipBtn) postcardFlipBtn.addEventListener("click", togglePostcardFlip);
+if (postcardFlipperEl) {
+  postcardFlipperEl.addEventListener("click", togglePostcardFlip);
+  postcardFlipperEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      togglePostcardFlip();
+    }
+  });
+}
+
 postcardStyleBtns.forEach((btn) => {
   btn.addEventListener("click", () => {
     activePostcardStyle = btn.dataset.pcStyle || "hanji";
     syncPostcardStyleButtons();
+    if (postcardTiltEl && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      postcardTiltEl.classList.remove("is-swapping");
+      void postcardTiltEl.offsetWidth;
+      postcardTiltEl.classList.add("is-swapping");
+      clearTimeout(swapTimerId);
+      swapTimerId = setTimeout(() => postcardTiltEl.classList.remove("is-swapping"), 400);
+    }
     drawActivePostcard();
   });
 });
@@ -1462,9 +1600,16 @@ function openPostcardModal(work) {
     .map((idx) => (work.lines && work.lines[idx] ? work.lines[idx].trim() : ""))
     .filter(Boolean);
   activePostcardQuote = selectedLines.slice(0, 4).join("\n");
+  activePostcardNote =
+    getReflection(work.id) ||
+    work.note ||
+    (work.siwoo && work.siwoo.text ? work.siwoo.text : "");
   activePostcardDateLabel = `${work.day}일째 · ${formatKoreanDate(getDateForDay(work.day))}`;
+  isPostcardFlipped = false;
 
+  resetPostcardTilt(true);
   syncPostcardStyleButtons();
+  syncPostcardFlipUI();
   if (postcardCopyBtn) postcardCopyBtn.textContent = "시 구절 복사하기";
   postcardModal.hidden = false;
   document.body.style.overflow = "hidden";
@@ -1474,6 +1619,7 @@ function openPostcardModal(work) {
 
 function closePostcardModal() {
   if (!postcardModal || postcardModal.hidden) return;
+  resetPostcardTilt(true);
   postcardModal.hidden = true;
   document.body.style.overflow = "";
 }
@@ -1487,10 +1633,13 @@ if (postcardModal) {
 
 if (postcardDownloadBtn) {
   postcardDownloadBtn.addEventListener("click", () => {
-    if (!postcardCanvasEl || !activePostcardWork) return;
+    if (!activePostcardWork) return;
+    const targetCanvas = isPostcardFlipped && postcardBackCanvasEl ? postcardBackCanvasEl : postcardCanvasEl;
+    if (!targetCanvas) return;
+    const sideSuffix = isPostcardFlipped ? "back" : "front";
     const link = document.createElement("a");
-    link.download = `dearshiwu-${activePostcardWork.id}.png`;
-    link.href = postcardCanvasEl.toDataURL("image/png");
+    link.download = `dearshiwu-${activePostcardWork.id}-${activePostcardStyle}-${sideSuffix}.png`;
+    link.href = targetCanvas.toDataURL("image/png");
     link.click();
   });
 }
@@ -1633,32 +1782,32 @@ sizeToggleBtn.addEventListener("click", () => {
 
 const THEMES = [
   {
-    key: "night",
-    short: "밤",
-    label: "서재의 밤",
-    metaColor: "#11151c",
-    iconPath: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>'
+    key: "sunlit",
+    short: "햇살",
+    label: "오후 세 시의 햇살",
+    metaColor: "#f5ede0",
+    iconPath: '<circle cx="12" cy="12" r="4.5"></circle><line x1="12" y1="2" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.05" y2="7.05"></line><line x1="16.95" y1="16.95" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.05" y2="16.95"></line><line x1="16.95" y1="7.05" x2="19.07" y2="4.93"></line>'
   },
   {
-    key: "paper",
-    short: "낮",
-    label: "한지의 오후",
-    metaColor: "#ebe4d6",
-    iconPath: '<circle cx="12" cy="12" r="4.5"></circle><line x1="12" y1="2" x2="12" y2="5"></line><line x1="12" y1="19" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.05" y2="7.05"></line><line x1="16.95" y1="16.95" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="5" y2="12"></line><line x1="19" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.05" y2="16.95"></line><line x1="16.95" y1="7.05" x2="19.07" y2="4.93"></line>'
+    key: "sunset",
+    short: "노을",
+    label: "살구빛 노을",
+    metaColor: "#2a1d1f",
+    iconPath: '<path d="M17 18a5 5 0 0 0-10 0"></path><line x1="12" y1="9" x2="12" y2="2"></line><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"></line><line x1="1" y1="18" x2="3" y2="18"></line><line x1="21" y1="18" x2="23" y2="18"></line><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"></line><line x1="23" y1="22" x2="1" y2="22"></line>'
   },
   {
     key: "forest",
     short: "숲",
-    label: "이끼 낀 숲",
-    metaColor: "#121d19",
+    label: "이슬 머금은 숲",
+    metaColor: "#17231d",
     iconPath: '<path d="M12 2L6.5 11h11L12 2z"></path><path d="M12 8.5L5 18h14L12 8.5z"></path><line x1="12" y1="18" x2="12" y2="22"></line>'
   },
   {
-    key: "dusk",
-    short: "노을",
-    label: "노을 세 시",
-    metaColor: "#21191d",
-    iconPath: '<path d="M17 18a5 5 0 0 0-10 0"></path><line x1="12" y1="9" x2="12" y2="2"></line><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"></line><line x1="1" y1="18" x2="3" y2="18"></line><line x1="21" y1="18" x2="23" y2="18"></line><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"></line><line x1="23" y1="22" x2="1" y2="22"></line>'
+    key: "candle",
+    short: "밤",
+    label: "촛불 켠 서재",
+    metaColor: "#1b1613",
+    iconPath: '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>'
   }
 ];
 
@@ -1668,7 +1817,7 @@ let currentThemeIdx = 0;
 function applyThemeSetting(idx) {
   const theme = THEMES[idx] || THEMES[0];
   document.documentElement.classList.add("theme-switching");
-  if (theme.key === "night") {
+  if (theme.key === "sunlit") {
     document.documentElement.removeAttribute("data-theme");
   } else {
     document.documentElement.dataset.theme = theme.key;

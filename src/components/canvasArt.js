@@ -260,13 +260,25 @@ function wrapCanvasLines(ctx, textLines, maxWidth) {
     }
     const words = trimmed.split(" ");
     let current = "";
+    const pushLongToken = (token) => {
+      let chunk = "";
+      for (const ch of token) {
+        if (ctx.measureText(chunk + ch).width <= maxWidth) {
+          chunk += ch;
+        } else {
+          if (chunk) out.push(chunk);
+          chunk = ch;
+        }
+      }
+      return chunk;
+    };
     words.forEach((word) => {
       const candidate = current ? `${current} ${word}` : word;
       if (ctx.measureText(candidate).width <= maxWidth) {
         current = candidate;
       } else {
         if (current) out.push(current);
-        current = word;
+        current = ctx.measureText(word).width > maxWidth ? pushLongToken(word) : word;
       }
     });
     if (current) out.push(current);
@@ -303,71 +315,96 @@ function drawCoverImage(ctx, img, x, y, w, h) {
 
 const POSTCARD_PALETTES = {
   hanji: {
-    bgTop: "#faf7f0",
-    bgMid: "#f6f1e6",
-    bgBot: "#efe6d5",
-    outerBorder: "rgba(182, 162, 130, 0.52)",
-    innerBorder: "rgba(182, 162, 130, 0.25)",
-    artFrame: "rgba(140, 126, 102, 0.3)",
-    title: "#171a20",
-    byline: "#686157",
-    caption: "#7c7366",
-    divider: "rgba(182, 162, 130, 0.55)",
-    ornament: "#ae9670",
-    quote: "#181c24",
-    quoteBg: "rgba(219, 173, 102, 0.16)",
-    footerLine: "rgba(218, 207, 189, 0.9)",
-    footerText: "#686157",
-    footerDate: "#8a8072",
+    bgTop: "#fbf6ec",
+    bgMid: "#f6eedf",
+    bgBot: "#eddcc4",
+    outerBorder: "rgba(176, 146, 108, 0.56)",
+    innerBorder: "rgba(176, 146, 108, 0.28)",
+    artFrame: "rgba(140, 118, 88, 0.34)",
+    title: "#231a13",
+    byline: "#6d5d4e",
+    caption: "#7f6f5e",
+    divider: "rgba(176, 146, 108, 0.56)",
+    ornament: "#b58b57",
+    quote: "#241b13",
+    quoteBg: "rgba(230, 175, 102, 0.2)",
+    footerLine: "rgba(214, 198, 174, 0.9)",
+    footerText: "#6d5d4e",
+    footerDate: "#8c7b68",
+    ruleLine: "rgba(176, 146, 108, 0.26)",
     sealInk: "#a53324",
-    sealFill: "rgba(184, 68, 53, 0.08)"
+    sealFill: "rgba(184, 68, 53, 0.08)",
+    fiberColor: "#85715a"
   },
-  ink: {
-    bgTop: "#151922",
-    bgMid: "#191e29",
-    bgBot: "#12161e",
-    outerBorder: "rgba(226, 194, 135, 0.36)",
-    innerBorder: "rgba(226, 194, 135, 0.16)",
-    artFrame: "rgba(226, 194, 135, 0.26)",
-    title: "#f1ece2",
-    byline: "#aba59b",
-    caption: "#9b968d",
-    divider: "rgba(226, 194, 135, 0.28)",
-    ornament: "#e2c287",
-    quote: "#f6f2e9",
-    quoteBg: "rgba(226, 194, 135, 0.13)",
-    footerLine: "rgba(226, 194, 135, 0.2)",
-    footerText: "#b8b2a8",
-    footerDate: "#8c877f",
-    sealInk: "#df796a",
-    sealFill: "rgba(223, 121, 106, 0.1)"
+  linen: {
+    bgTop: "#faf6ec",
+    bgMid: "#f2ebdc",
+    bgBot: "#e8dcc6",
+    outerBorder: "rgba(164, 126, 86, 0.54)",
+    innerBorder: "rgba(164, 126, 86, 0.26)",
+    artFrame: "rgba(144, 110, 74, 0.38)",
+    title: "#271d14",
+    byline: "#6f5d4b",
+    caption: "#816d59",
+    divider: "rgba(164, 126, 86, 0.5)",
+    ornament: "#b5744a",
+    quote: "#291e14",
+    quoteBg: "rgba(196, 146, 98, 0.16)",
+    footerLine: "rgba(205, 187, 160, 0.88)",
+    footerText: "#6c5a48",
+    footerDate: "#8b7864",
+    ruleLine: "rgba(164, 126, 86, 0.26)",
+    sealInk: "#a83c2a",
+    sealFill: "rgba(168, 60, 42, 0.08)",
+    fiberColor: "#7e6b56"
   },
   gallery: {
-    bgTop: "#fdfcfa",
-    bgMid: "#fbfaf6",
-    bgBot: "#f6f3ec",
-    outerBorder: "rgba(196, 190, 178, 0.65)",
-    innerBorder: "rgba(212, 206, 194, 0.35)",
-    artFrame: "rgba(170, 164, 152, 0.35)",
-    title: "#1a1917",
-    byline: "#726c64",
-    caption: "#847d73",
-    divider: "rgba(212, 206, 194, 0.7)",
-    ornament: "#9c9282",
-    quote: "#22201d",
-    quoteBg: "rgba(205, 178, 132, 0.14)",
-    footerLine: "rgba(224, 219, 210, 0.9)",
-    footerText: "#726c64",
-    footerDate: "#928a7e",
+    bgTop: "#fdfbf6",
+    bgMid: "#faf7ef",
+    bgBot: "#f4eee2",
+    outerBorder: "rgba(192, 182, 166, 0.68)",
+    innerBorder: "rgba(208, 198, 184, 0.42)",
+    artFrame: "rgba(160, 148, 132, 0.42)",
+    title: "#211c17",
+    byline: "#72685d",
+    caption: "#857a6d",
+    divider: "rgba(204, 194, 180, 0.72)",
+    ornament: "#9d8d78",
+    quote: "#26201a",
+    quoteBg: "rgba(212, 178, 126, 0.16)",
+    footerLine: "rgba(220, 212, 198, 0.9)",
+    footerText: "#72685d",
+    footerDate: "#928677",
+    ruleLine: "rgba(182, 170, 152, 0.3)",
     sealInk: "#9c3326",
-    sealFill: "rgba(156, 51, 38, 0.06)"
+    sealFill: "rgba(156, 51, 38, 0.06)",
+    fiberColor: "#8b8173"
+  },
+  ink: {
+    bgTop: "#201a16",
+    bgMid: "#261f1a",
+    bgBot: "#181310",
+    outerBorder: "rgba(232, 194, 134, 0.42)",
+    innerBorder: "rgba(232, 194, 134, 0.2)",
+    artFrame: "rgba(232, 194, 134, 0.3)",
+    title: "#f6efe4",
+    byline: "#bfb19f",
+    caption: "#ad9f8d",
+    divider: "rgba(232, 194, 134, 0.3)",
+    ornament: "#e5be82",
+    quote: "#faf3e8",
+    quoteBg: "rgba(232, 194, 134, 0.14)",
+    footerLine: "rgba(232, 194, 134, 0.22)",
+    footerText: "#c4b6a4",
+    footerDate: "#9d8f7d",
+    ruleLine: "rgba(232, 194, 134, 0.18)",
+    sealInk: "#e5816e",
+    sealFill: "rgba(229, 129, 110, 0.12)",
+    fiberColor: "#e5be82"
   }
 };
 
-export function renderPostcardCanvas(canvas, work, highlightQuote, dateLabel, options = {}) {
-  if (!canvas || !work) return;
-  const styleKey = POSTCARD_PALETTES[options.style] ? options.style : "hanji";
-  const pal = POSTCARD_PALETTES[styleKey];
+function createHiResPostcardCanvas(canvas) {
   const W = 720;
   const H = 960;
   const dpr = 2;
@@ -375,8 +412,10 @@ export function renderPostcardCanvas(canvas, work, highlightQuote, dateLabel, op
   canvas.height = H * dpr;
   const ctx = canvas.getContext("2d");
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, W, H };
+}
 
-  // Paper backdrop
+function drawPostcardPaperBase(ctx, W, H, pal, rand, styleKey) {
   const bg = ctx.createLinearGradient(0, 0, 0, H);
   bg.addColorStop(0, pal.bgTop);
   bg.addColorStop(0.55, pal.bgMid);
@@ -384,17 +423,42 @@ export function renderPostcardCanvas(canvas, work, highlightQuote, dateLabel, op
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
-  // Subtle cotton paper grain fibers
-  const rand = createSeededRandom(`${work.id}-${styleKey}`);
+  // Subtle ambient warm sunlight gradient from upper left corner
+  const sunWash = ctx.createRadialGradient(W * 0.18, H * 0.1, 20, W * 0.2, H * 0.15, W * 0.85);
+  sunWash.addColorStop(0, styleKey === "ink" ? "rgba(232, 184, 120, 0.08)" : "rgba(255, 250, 236, 0.5)");
+  sunWash.addColorStop(1, "rgba(255, 250, 236, 0)");
+  ctx.fillStyle = sunWash;
+  ctx.fillRect(0, 0, W, H);
+
+  // Cotton / linen / hanji fiber texture
   ctx.save();
-  ctx.lineWidth = 0.6;
-  for (let i = 0; i < 110; i++) {
-    ctx.globalAlpha = styleKey === "ink" ? 0.035 : 0.04;
-    ctx.strokeStyle = styleKey === "ink" ? "#e2c287" : "#7c705f";
+  if (styleKey === "linen") {
+    ctx.strokeStyle = pal.fiberColor;
+    ctx.lineWidth = 0.55;
+    ctx.globalAlpha = 0.045;
+    for (let x = 28; x < W - 24; x += 14) {
+      ctx.beginPath();
+      ctx.moveTo(x, 26);
+      ctx.lineTo(x, H - 26);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 0.036;
+    for (let y = 28; y < H - 24; y += 14) {
+      ctx.beginPath();
+      ctx.moveTo(26, y);
+      ctx.lineTo(W - 26, y);
+      ctx.stroke();
+    }
+  }
+  const fiberCount = styleKey === "hanji" ? 155 : 105;
+  ctx.lineWidth = 0.65;
+  for (let i = 0; i < fiberCount; i++) {
+    ctx.globalAlpha = styleKey === "ink" ? 0.035 : styleKey === "hanji" ? 0.05 : 0.032;
+    ctx.strokeStyle = pal.fiberColor;
     const x = rand() * W;
     const y = rand() * H;
-    const len = 5 + rand() * 14;
-    const ang = (rand() - 0.5) * 0.8;
+    const len = 5 + rand() * 16;
+    const ang = (rand() - 0.5) * 1.1;
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(x + Math.cos(ang) * len, y + Math.sin(ang) * len);
@@ -410,18 +474,37 @@ export function renderPostcardCanvas(canvas, work, highlightQuote, dateLabel, op
   ctx.lineWidth = 1;
   ctx.strokeRect(32, 32, W - 64, H - 64);
 
-  // Top artwork frame (gallery uses slightly more breathing mat)
-  const artPad = styleKey === "gallery" ? 66 : 52;
-  const artW = W - artPad * 2;
-  const artH = Math.round((artW * 10) / 16);
-  const artX = artPad;
-  const artY = styleKey === "gallery" ? 62 : 52;
+  // Corner stationery brackets on linen / hanji
+  if (styleKey === "linen" || styleKey === "hanji") {
+    ctx.save();
+    ctx.strokeStyle = pal.ornament;
+    ctx.globalAlpha = 0.45;
+    ctx.lineWidth = 1.1;
+    const m = 42;
+    const s = 12;
+    const corners = [
+      [m, m, 1, 1],
+      [W - m, m, -1, 1],
+      [m, H - m, 1, -1],
+      [W - m, H - m, -1, -1]
+    ];
+    corners.forEach(([cx, cy, dx, dy]) => {
+      ctx.beginPath();
+      ctx.moveTo(cx, cy + dy * s);
+      ctx.lineTo(cx, cy);
+      ctx.lineTo(cx + dx * s, cy);
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+}
 
+function drawArtworkInRect(ctx, work, artX, artY, artW, artH, radius, rand, img) {
   ctx.save();
-  traceRoundedRect(ctx, artX, artY, artW, artH, styleKey === "gallery" ? 4 : 8);
+  traceRoundedRect(ctx, artX, artY, artW, artH, radius);
   ctx.clip();
-  if (options.image && options.image.complete && options.image.naturalWidth > 0) {
-    drawCoverImage(ctx, options.image, artX, artY, artW, artH);
+  if (img && img.complete && img.naturalWidth > 0) {
+    drawCoverImage(ctx, img, artX, artY, artW, artH);
   } else {
     ctx.translate(artX, artY);
     const key = getArtworkKey(work);
@@ -430,10 +513,69 @@ export function renderPostcardCanvas(canvas, work, highlightQuote, dateLabel, op
     applyPoeticFinish(ctx, artW, artH, rand);
   }
   ctx.restore();
+}
+
+function drawWavyPostmark(ctx, startX, baseY, strokeColor) {
+  ctx.save();
+  ctx.strokeStyle = strokeColor;
+  ctx.lineWidth = 1.1;
+  for (let wIdx = 0; wIdx < 3; wIdx++) {
+    const wy = baseY + wIdx * 10;
+    ctx.beginPath();
+    ctx.moveTo(startX, wy);
+    ctx.bezierCurveTo(startX + 22, wy - 5, startX + 44, wy + 5, startX + 68, wy);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawPoetSeal(ctx, sealX, sealY, pal, topText = "시인", bottomText = "우체통") {
+  ctx.save();
+  ctx.strokeStyle = pal.sealInk;
+  ctx.lineWidth = 1.6;
+  traceRoundedRect(ctx, sealX, sealY, 50, 48, 5);
+  ctx.stroke();
+  ctx.fillStyle = pal.sealFill;
+  ctx.fill();
+  ctx.fillStyle = pal.sealInk;
+  ctx.font = '700 13px "Gowun Batang", Georgia, serif';
+  ctx.textAlign = "center";
+  ctx.fillText(topText, sealX + 25, sealY + 21);
+  ctx.fillText(bottomText, sealX + 25, sealY + 38);
+  ctx.restore();
+}
+
+export function renderPostcardCanvas(canvas, work, highlightQuote, dateLabel, options = {}) {
+  if (!canvas || !work) return;
+  const styleKey = POSTCARD_PALETTES[options.style] ? options.style : "hanji";
+  const pal = POSTCARD_PALETTES[styleKey];
+  const { ctx, W, H } = createHiResPostcardCanvas(canvas);
+  const rand = createSeededRandom(`${work.id}-${styleKey}`);
+
+  drawPostcardPaperBase(ctx, W, H, pal, rand, styleKey);
+
+  // Top artwork frame (gallery uses generous museum mat + recessed plate-mark)
+  const artPad = styleKey === "gallery" ? 68 : 52;
+  const artW = W - artPad * 2;
+  const artH = Math.round((artW * 10) / 16);
+  const artX = artPad;
+  const artY = styleKey === "gallery" ? 64 : 52;
+  const artRadius = styleKey === "gallery" ? 4 : 8;
+
+  if (styleKey === "gallery") {
+    ctx.save();
+    ctx.strokeStyle = "rgba(130, 110, 84, 0.22)";
+    ctx.lineWidth = 1.2;
+    traceRoundedRect(ctx, artX - 10, artY - 10, artW + 20, artH + 20, 6);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  drawArtworkInRect(ctx, work, artX, artY, artW, artH, artRadius, rand, options.image);
 
   ctx.strokeStyle = pal.artFrame;
   ctx.lineWidth = 1;
-  traceRoundedRect(ctx, artX, artY, artW, artH, styleKey === "gallery" ? 4 : 8);
+  traceRoundedRect(ctx, artX, artY, artW, artH, artRadius);
   ctx.stroke();
 
   const captionY = artY + artH + 26;
@@ -518,33 +660,138 @@ export function renderPostcardCanvas(canvas, work, highlightQuote, dateLabel, op
     ctx.fillText(dateLabel, 56, 916);
   }
 
-  // Subtle wavy postmark lines beside stamp
-  ctx.save();
-  ctx.strokeStyle = pal.innerBorder;
-  ctx.lineWidth = 1.1;
-  for (let wIdx = 0; wIdx < 3; wIdx++) {
-    const wy = 886 + wIdx * 10;
-    ctx.beginPath();
-    ctx.moveTo(W - 190, wy);
-    ctx.bezierCurveTo(W - 168, wy - 5, W - 146, wy + 5, W - 122, wy);
-    ctx.stroke();
+  drawWavyPostmark(ctx, W - 190, 886, pal.innerBorder);
+  drawPoetSeal(ctx, W - 108, 874, pal, "시인", "우체통");
+}
+
+export function renderPostcardBackCanvas(canvas, work, noteText, dateLabel, options = {}) {
+  if (!canvas || !work) return;
+  const styleKey = POSTCARD_PALETTES[options.style] ? options.style : "hanji";
+  const pal = POSTCARD_PALETTES[styleKey];
+  const { ctx, W, H } = createHiResPostcardCanvas(canvas);
+  const rand = createSeededRandom(`${work.id}-${styleKey}-back`);
+
+  drawPostcardPaperBase(ctx, W, H, pal, rand, styleKey);
+
+  // Header caption
+  ctx.fillStyle = pal.footerDate;
+  ctx.font = '600 12px "IBM Plex Sans KR", sans-serif';
+  ctx.textAlign = "left";
+  ctx.fillText("POST CARD  ·  시인의 우체통", 60, 84);
+
+  ctx.fillStyle = pal.title;
+  ctx.font = '700 23px "Gowun Batang", Georgia, serif';
+  ctx.fillText(`「${work.title}」`, 60, 128);
+
+  const bylineText = work.mine
+    ? "이시우"
+    : `${work.author}${work.life ? ` (${work.life})` : ""}`;
+  ctx.fillStyle = pal.byline;
+  ctx.font = '14px "IBM Plex Sans KR", sans-serif';
+  ctx.fillText(bylineText, 60, 156);
+  if (dateLabel) {
+    ctx.fillStyle = pal.footerDate;
+    ctx.font = '13px "IBM Plex Sans KR", sans-serif';
+    ctx.fillText(`${dateLabel}의 기록`, 60, 180);
   }
+
+  // Top-right postage stamp frame with miniature watercolor artwork
+  const stampX = W - 182;
+  const stampY = 64;
+  const stampW = 122;
+  const stampH = 148;
+  ctx.save();
+  ctx.fillStyle = styleKey === "ink" ? "#2d241d" : "#fffcf5";
+  ctx.fillRect(stampX, stampY, stampW, stampH);
+  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = pal.outerBorder;
+  ctx.lineWidth = 1.4;
+  ctx.strokeRect(stampX, stampY, stampW, stampH);
   ctx.restore();
 
-  // Vermilion poet stamp seal
-  const sealX = W - 108;
-  const sealY = 874;
-  ctx.save();
-  ctx.strokeStyle = pal.sealInk;
-  ctx.lineWidth = 1.6;
-  traceRoundedRect(ctx, sealX, sealY, 50, 48, 5);
-  ctx.stroke();
-  ctx.fillStyle = pal.sealFill;
-  ctx.fill();
+  drawArtworkInRect(ctx, work, stampX + 10, stampY + 10, stampW - 20, 88, 3, rand, options.image);
+  ctx.strokeStyle = pal.artFrame;
+  ctx.lineWidth = 0.8;
+  ctx.strokeRect(stampX + 10, stampY + 10, stampW - 20, 88);
+
   ctx.fillStyle = pal.sealInk;
-  ctx.font = '700 13px "Gowun Batang", Georgia, serif';
+  ctx.font = '700 11.5px "Gowun Batang", Georgia, serif';
   ctx.textAlign = "center";
-  ctx.fillText("시인", sealX + 25, sealY + 21);
-  ctx.fillText("우체통", sealX + 25, sealY + 38);
+  ctx.fillText("詩 · PM 3:00", stampX + stampW / 2, stampY + 128);
+
+  // Circular postmark cancellation near stamp
+  ctx.save();
+  ctx.translate(stampX - 18, stampY + 124);
+  ctx.rotate(-0.18);
+  ctx.strokeStyle = pal.innerBorder;
+  ctx.lineWidth = 1.3;
+  ctx.beginPath();
+  ctx.arc(0, 0, 34, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, 0, 27, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = pal.footerDate;
+  ctx.font = '600 8px "IBM Plex Sans KR", sans-serif';
+  ctx.textAlign = "center";
+  ctx.fillText("DEAR SHIWU", 0, -4);
+  ctx.fillText("PM 3:00", 0, 9);
   ctx.restore();
+  drawWavyPostmark(ctx, stampX - 96, stampY + 114, pal.innerBorder);
+
+  // Letter stationery divider and ruled note lines
+  ctx.strokeStyle = pal.divider;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(60, 246);
+  ctx.lineTo(W - 60, 246);
+  ctx.stroke();
+
+  ctx.fillStyle = pal.ornament;
+  ctx.font = '13px "Gowun Batang", Georgia, serif';
+  ctx.textAlign = "left";
+  ctx.fillText("오늘 내 마음에 남긴 한 줄", 60, 286);
+
+  const lineStartY = 344;
+  const rowStep = 56;
+  const totalRows = 7;
+  ctx.strokeStyle = pal.ruleLine;
+  ctx.lineWidth = 1;
+  for (let i = 0; i < totalRows; i++) {
+    const ry = lineStartY + i * rowStep;
+    ctx.beginPath();
+    ctx.moveTo(60, ry);
+    ctx.lineTo(W - 60, ry);
+    ctx.stroke();
+  }
+
+  const trimmedNote = (noteText || "").trim();
+  const displayNote =
+    trimmedNote ||
+    "오늘 하루를 조용히 건너온 당신에게,\n이 시와 그림이 작은 쉼표로 남기를 바라요.";
+  ctx.font = '21px "Gowun Batang", Georgia, serif';
+  const noteLines = wrapCanvasLines(ctx, displayNote.split("\n"), W - 132).slice(0, totalRows);
+  ctx.fillStyle = trimmedNote ? pal.title : pal.byline;
+  ctx.textAlign = "left";
+  noteLines.forEach((line, idx) => {
+    ctx.fillText(line, 64, lineStartY + idx * rowStep - 12);
+  });
+
+  // Vintage postcard address & footer
+  ctx.strokeStyle = pal.footerLine;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(60, 814);
+  ctx.lineTo(W - 60, 814);
+  ctx.stroke();
+
+  ctx.textAlign = "left";
+  ctx.fillStyle = pal.footerText;
+  ctx.font = '15px "Gowun Batang", Georgia, serif';
+  ctx.fillText("To. 오늘 하루를 조용히 건너온 나에게", 60, 858);
+  ctx.fillStyle = pal.footerDate;
+  ctx.font = '13.5px "Gowun Batang", Georgia, serif';
+  ctx.fillText("From. 오후 세 시, 시인의 우체통", 60, 892);
+
+  drawPoetSeal(ctx, W - 110, 852, pal, "詩", "세시");
 }

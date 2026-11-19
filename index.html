@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="매일 오후 3시, 시와 그림이 담긴 편지가 도착해요. 시 한 번에 호흡 한 번, 잠시 나를 만나는 시간.">
-  <meta name="theme-color" content="#11151c">
+  <meta name="theme-color" content="#f5ede0">
   <link rel="icon" href="./favicon.svg" type="image/svg+xml">
   <link rel="canonical" href="https://dearshiwu.com/">
   <meta property="og:type" content="website">
@@ -19,6 +19,13 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500&family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
 </head>
 <body>
+  <div class="ambient-light" aria-hidden="true">
+    <span class="sun-beam"></span>
+    <span class="sun-mote m1"></span>
+    <span class="sun-mote m2"></span>
+    <span class="sun-mote m3"></span>
+    <span class="sun-mote m4"></span>
+  </div>
   <div class="app">
     <header class="top">
       <a class="brand" href="#today" aria-label="시인의 우체통 처음으로">
@@ -32,11 +39,19 @@
       </a>
       <div class="top-right">
         <span class="today-date" id="todayDate">11월 17일</span>
-        <button class="ctrl-btn" id="themeBtn" type="button" aria-label="배경 분위기 바꾸기: 밤의 고요" title="배경 분위기 바꾸기">
+        <button class="ctrl-btn" id="themeBtn" type="button" aria-label="배경 분위기 바꾸기: 오후 세 시의 햇살" title="배경 분위기 바꾸기">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-            <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>
+            <circle cx="12" cy="12" r="4.5"></circle>
+            <line x1="12" y1="2" x2="12" y2="5"></line>
+            <line x1="12" y1="19" x2="12" y2="22"></line>
+            <line x1="4.93" y1="4.93" x2="7.05" y2="7.05"></line>
+            <line x1="16.95" y1="16.95" x2="19.07" y2="19.07"></line>
+            <line x1="2" y1="12" x2="5" y2="12"></line>
+            <line x1="19" y1="12" x2="22" y2="12"></line>
+            <line x1="4.93" y1="19.07" x2="7.05" y2="16.95"></line>
+            <line x1="16.95" y1="7.05" x2="19.07" y2="4.93"></line>
           </svg>
-          <span class="ctrl-label">밤</span>
+          <span class="ctrl-label">햇살</span>
         </button>
         <button class="ctrl-btn" id="soundBtn" type="button" aria-pressed="false" aria-label="잔잔한 자연 소리 켜기" title="잔잔한 빗소리 켜기/끄기">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
@@ -56,7 +71,15 @@
       </div>
       <div class="mail" id="mail">
         <button class="envelope" id="envelope" type="button" aria-label="오늘의 편지 열기">
-          <span class="env-paper-lines" aria-hidden="true"></span>
+          <span class="env-interior" aria-hidden="true"></span>
+          <span class="env-peek" aria-hidden="true">
+            <span class="env-peek-art" id="envPeekArt"></span>
+            <span class="env-peek-title" id="envPeekTitle">산유화</span>
+          </span>
+          <span class="env-pocket" aria-hidden="true">
+            <span class="env-paper-lines"></span>
+            <span class="env-folds"></span>
+          </span>
           <span class="env-postmark" aria-hidden="true">
             <span class="postmark-ring">DEAR SHIWU<br>PM 3:00</span>
           </span>
@@ -269,19 +292,36 @@
     <div class="postcard-dialog">
       <div class="postcard-head">
         <span id="postcardTitle">시 엽서 간직하기</span>
-        <button class="postcard-close" id="postcardClose" type="button" aria-label="시 엽서 닫기">닫기</button>
+        <div class="postcard-head-actions">
+          <button class="postcard-flip-btn" id="postcardFlip" type="button" aria-pressed="false">뒷면 보기</button>
+          <button class="postcard-close" id="postcardClose" type="button" aria-label="시 엽서 닫기">닫기</button>
+        </div>
       </div>
-      <div class="postcard-styles" role="group" aria-label="엽서 종이 스타일">
-        <button type="button" class="pc-style-btn" data-pc-style="hanji" aria-pressed="true">클래식 한지</button>
-        <button type="button" class="pc-style-btn" data-pc-style="ink" aria-pressed="false">밤의 잉크</button>
+      <div class="postcard-styles" role="group" aria-label="엽서 종이 질감">
+        <button type="button" class="pc-style-btn" data-pc-style="hanji" aria-pressed="true">따뜻한 한지</button>
+        <button type="button" class="pc-style-btn" data-pc-style="linen" aria-pressed="false">햇살 린넨</button>
         <button type="button" class="pc-style-btn" data-pc-style="gallery" aria-pressed="false">여백 갤러리</button>
+        <button type="button" class="pc-style-btn" data-pc-style="ink" aria-pressed="false">밤의 먹지</button>
       </div>
-      <div class="postcard-preview-wrap">
-        <canvas id="postcardCanvas" class="postcard-canvas" aria-label="시와 그림이 담긴 시 엽서 이미지"></canvas>
+      <div class="postcard-stage" id="postcardStage">
+        <div class="postcard-tilt" id="postcardTilt">
+          <div class="postcard-flipper" id="postcardFlipper" role="button" tabindex="0" aria-label="엽서를 눌러 앞면과 뒷면 뒤집기">
+            <div class="postcard-face postcard-face--front">
+              <canvas id="postcardCanvas" class="postcard-canvas" aria-label="시와 그림이 담긴 시 엽서 앞면"></canvas>
+              <span class="postcard-fiber-fx" aria-hidden="true"></span>
+              <span class="postcard-sheen" aria-hidden="true"></span>
+            </div>
+            <div class="postcard-face postcard-face--back">
+              <canvas id="postcardBackCanvas" class="postcard-canvas" aria-label="마음의 한 줄과 우표가 담긴 시 엽서 뒷면"></canvas>
+              <span class="postcard-fiber-fx" aria-hidden="true"></span>
+              <span class="postcard-sheen" aria-hidden="true"></span>
+            </div>
+          </div>
+        </div>
       </div>
-      <p class="postcard-tip">밑줄 그은 구절이 있다면 그 구절이, 없다면 시의 첫 연이 엽서에 담겨요.</p>
+      <p class="postcard-tip" id="postcardTip">엽서를 움직이면 종이 결이 빛나고, 누르면 뒷면으로 뒤집혀요.</p>
       <div class="postcard-actions">
-        <button class="submit postcard-dl" id="postcardDownload" type="button">이미지로 간직하기 (PNG)</button>
+        <button class="submit postcard-dl" id="postcardDownload" type="button">앞면 간직하기 (PNG)</button>
         <button class="btn postcard-copy" id="postcardCopy" type="button">시 구절 복사하기</button>
       </div>
     </div>
